@@ -3,6 +3,15 @@ import { analyzeResumeWithGemini } from '../../../lib/gemini-service';
 import { extractTextFromPdf } from '../../../lib/pdf-extractor';
 import { parseGeminiResponse } from '../../../lib/response-parser';
 
+// Add GET handler for testing
+export async function GET(request) {
+  return NextResponse.json({ 
+    status: 'success', 
+    message: 'Analyze API route is working',
+    timestamp: new Date().toISOString()
+  });
+}
+
 export async function POST(request) {
   try {
     const formData = await request.formData();

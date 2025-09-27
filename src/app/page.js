@@ -16,6 +16,7 @@ import {
   Rocket,
   Sparkles,
   TrendingUp,
+  GitCompare,
 } from "lucide-react";
 import HeroSection from "../components/HeroSection";
 
@@ -86,6 +87,22 @@ export default function HomePage() {
         "Impact Metrics",
       ],
     },
+    // {
+    //   icon: GitCompare,
+    //   title: "Resume Comparison",
+    //   description:
+    //     "Compare multiple versions of your resume to see which one performs better with AI insights.",
+    //   path: "/resume-comparison",
+    //   color: "bg-pink-500",
+    //   hoverColor: "hover:bg-pink-600",
+    //   features: [
+    //     "Side-by-Side Comparison",
+    //     "Performance Metrics",
+    //     "Improvement Suggestions",
+    //     "Version Tracking",
+    //   ],
+    //   comingSoon: true,
+    // }
   ];
 
   const stats = [

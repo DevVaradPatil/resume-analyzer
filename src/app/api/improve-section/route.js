@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { improveResumeSectionWithGemini } from '../../../lib/gemini-service';
 import { parseGeminiResponse } from '../../../lib/response-parser';
 
+// Add GET handler for testing
+export async function GET(request) {
+  return NextResponse.json({ 
+    status: 'success', 
+    message: 'Improve Section API route is working',
+    timestamp: new Date().toISOString()
+  });
+}
+
 export async function POST(request) {
   try {
     const body = await request.json();
