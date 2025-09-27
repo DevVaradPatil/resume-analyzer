@@ -1,16 +1,33 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText } from 'lucide-react';
 import Header from '../../components/Header';
 import FileUpload from '../../components/FileUpload';
+import { 
+  trackResumeUpload, 
+  trackAnalysisStart, 
+  trackAnalysisComplete, 
+  trackAnalysisError,
+  trackPageView 
+} from '../../lib/analytics';
 
 export default function ResumeAnalysisPage() {
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    // Track page view when component mounts
+    trackPageView('resume_analysis');
+  }, []);
+
   const handleAnalysis = async (file, jobDescription) => {
+    const startTime = Date.now();
+    
+    // Track resume upload
+    trackResumeUpload(file.size, file.type);
+    
     const formData = new FormData();
     formData.append('resume', file);
     formData.append('job_description', jobDescription);
@@ -18,6 +35,9 @@ export default function ResumeAnalysisPage() {
     setIsLoading(true);
     setError(null);
     setResult(null);
+
+    // Track analysis start
+    trackAnalysisStart(!!jobDescription.trim());
 
     try {
       const res = await fetch('/api/analyze', {
@@ -35,9 +55,17 @@ export default function ResumeAnalysisPage() {
         throw new Error(data.error || 'Server error occurred');
       }
       
+      // Track successful analysis
+      const duration = Date.now() - startTime;
+      trackAnalysisComplete(data.score || 0, duration);
+      
       setResult(data);
     } catch (err) {
       console.error('Error:', err);
+      
+      // Track analysis error
+      trackAnalysisError('analysis_failed', err.message);
+      
       setError(err.message || 'An error occurred while analyzing the resume');
     } finally {
       setIsLoading(false);
