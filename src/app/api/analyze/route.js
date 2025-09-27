@@ -5,15 +5,48 @@ import { parseGeminiResponse } from '../../../lib/response-parser';
 
 // Add GET handler for testing
 export async function GET(request) {
-  return NextResponse.json({ 
-    status: 'success', 
-    message: 'Analyze API route is working',
-    timestamp: new Date().toISOString()
-  });
+  try {
+    // Test environment variables
+    const hasGoogleApiKey = !!process.env.GOOGLE_API_KEY;
+    
+    return NextResponse.json({ 
+      status: 'success', 
+      message: 'Analyze API route is working',
+      timestamp: new Date().toISOString(),
+      environment: {
+        hasGoogleApiKey,
+        nodeVersion: process.version,
+        platform: process.platform
+      }
+    });
+  } catch (error) {
+    console.error('GET /api/analyze error:', error);
+    return NextResponse.json({
+      status: 'error',
+      message: 'Error in GET handler',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
+  }
 }
 
 export async function POST(request) {
+  console.log('POST /api/analyze - Starting request processing');
+  
   try {
+    // Check environment variables first
+    if (!process.env.GOOGLE_API_KEY) {
+      console.error('GOOGLE_API_KEY environment variable is missing');
+      return NextResponse.json(
+        { 
+          status: 'error', 
+          error: 'Server configuration error: Missing API key' 
+        },
+        { status: 500 }
+      );
+    }
+
+    console.log('Parsing form data...');
     const formData = await request.formData();
     
     // Check if resume file is present
@@ -47,9 +80,13 @@ export async function POST(request) {
     // Extract text from PDF
     let resumeText;
     try {
+      console.log('Converting file to buffer...');
       const pdfBuffer = Buffer.from(await resumeFile.arrayBuffer());
+      console.log('Buffer created, size:', pdfBuffer.length);
+      
+      console.log('Extracting text from PDF...');
       resumeText = await extractTextFromPdf(pdfBuffer);
-      console.log('Successfully extracted text from PDF');
+      console.log('Successfully extracted text from PDF, length:', resumeText.length);
     } catch (error) {
       console.error('PDF extraction error:', error);
       return NextResponse.json(
@@ -89,9 +126,15 @@ export async function POST(request) {
     }
     
   } catch (error) {
-    console.error('Unexpected error:', error);
+    console.error('Unexpected error in POST /api/analyze:', error);
+    console.error('Error stack:', error.stack);
+    
     return NextResponse.json(
-      { status: 'error', error: `Unexpected error: ${error.message}` },
+      { 
+        status: 'error', 
+        error: `Unexpected error: ${error.message}`,
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     );
   }
