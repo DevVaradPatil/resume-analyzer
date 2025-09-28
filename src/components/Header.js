@@ -5,13 +5,19 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 const Header = ({ 
-  title, 
+  title = "ResumeInsight", 
   subtitle, 
   icon: Icon, 
   iconColor = "text-blue-600",
   backTo = "/",
   compact = false 
 }) => {
+  // Safely handle title splitting
+  const getShortTitle = (fullTitle) => {
+    if (!fullTitle) return "Resume";
+    const words = fullTitle.split(' ');
+    return words[0] || "Resume";
+  };
   return (
     <header className="bg-white/95 backdrop-blur-lg border-b border-slate-200/60 sticky top-0 z-50 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -35,7 +41,7 @@ const Header = ({
               )}
               <h1 className={`font-bold text-slate-800 tracking-tight ${compact ? 'text-lg sm:text-md' : 'text-md sm:text-xl'}`}>
                 <span className="hidden sm:inline">{title}</span>
-                <span className="sm:hidden">{title.split(' ')[0]}</span>
+                <span className="sm:hidden">{getShortTitle(title)}</span>
               </h1>
             </div>
             {subtitle && (
