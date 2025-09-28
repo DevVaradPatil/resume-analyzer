@@ -2,6 +2,7 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Analytics } from '@vercel/analytics/react';
 import { structuredData, organizationData } from '../lib/structured-data';
+import Footer from '../components/Footer';
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -84,9 +85,12 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body
-        className={`${poppins.variable} font-sans antialiased`}
+        className={`${poppins.variable} font-sans antialiased min-h-screen flex flex-col`}
       >
-        {children}
+        <main className="flex-grow">
+          {children}
+        </main>
+        <Footer />
         <Analytics />
       </body>
     </html>

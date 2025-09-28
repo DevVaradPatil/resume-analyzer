@@ -778,30 +778,6 @@ export default function HomePage() {
           </motion.div>
         </motion.div>
       </section>
-
-      {/* Footer */}
-      <motion.footer
-        className="bg-slate-900 text-white py-8"
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        viewport={{ once: true }}
-      >
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-blue-900 rounded-lg">
-                <FileText className="text-blue-400" size={24} />
-              </div>
-              <div className="font-bold text-xl">Resume Analyzer</div>
-            </div>
-
-            <div className="text-slate-400 text-sm">
-              © {new Date().getFullYear()} Resume Analyzer. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </motion.footer>
     </div>
   );
 }
