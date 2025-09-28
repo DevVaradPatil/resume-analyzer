@@ -38,7 +38,7 @@ export const metadata = {
     siteName: 'ResumeInsight',
     images: [
       {
-        url: '/og-image.png',
+        url: '/assets/landing.png',
         width: 1200,
         height: 630,
         alt: 'ResumeInsight - AI-Powered Resume Analyzer',
@@ -51,7 +51,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'Resume Analyzer - AI-Powered Resume Enhancement',
     description: 'Transform your job application process with precision AI analysis.',
-    images: ['/og-image.png'],
+    images: ['/assets/landing.png'],
   },
   robots: {
     index: true,

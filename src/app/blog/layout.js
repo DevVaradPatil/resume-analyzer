@@ -1,6 +1,4 @@
-import { Metadata } from 'next';
-
-export const metadata: Metadata = {
+export const metadata = {
   title: 'Resume Tips & Career Resources | ResumeInsight Blog',
   description: 'Expert advice on resume writing, job search strategies, and career development. Learn how to optimize your resume for ATS systems and land more interviews.',
   keywords: [
@@ -15,16 +13,13 @@ export const metadata: Metadata = {
     title: 'Resume Tips & Career Resources',
     description: 'Expert advice on resume writing and career development.',
     url: 'https://resumeinsight.vercel.app/blog',
+    images: ['/assets/landing.png'],
   },
   alternates: {
     canonical: '/blog',
   },
 };
 
-export default function BlogLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function BlogLayout({ children }) {
   return children;
 }
