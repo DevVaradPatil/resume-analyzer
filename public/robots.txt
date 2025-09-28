@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://resumeinsight.vercel.app/sitemap.xml
+
+# Disallow crawling of API routes
+Disallow: /api/
+
+# Allow crawling of main pages
+Allow: /
+Allow: /resume-analysis
+Allow: /analytics
+Allow: /section-improvement
