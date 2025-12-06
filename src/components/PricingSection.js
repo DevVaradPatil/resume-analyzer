@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Zap, Crown, Rocket } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 
 const PRICING_TIERS = [
   {
@@ -70,7 +71,44 @@ const PRICING_TIERS = [
   },
 ];
 
-export default function PricingSection({ onSelectTier, currentTier = 'free', showTitle = true }) {
+export default function PricingSection({ onSelectTier, currentTier: propCurrentTier, showTitle = true }) {
+  const { isSignedIn } = useUser();
+  const [currentTier, setCurrentTier] = useState(propCurrentTier || 'free');
+  const [isLoadingTier, setIsLoadingTier] = useState(true);
+
+  useEffect(() => {
+    // Fetch actual subscription tier if user is signed in
+    const fetchCurrentTier = async () => {
+      if (!isSignedIn) {
+        setCurrentTier('free');
+        setIsLoadingTier(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/subscription/status');
+        const data = await response.json();
+        
+        console.log('PricingSection - API Response:', data); // Debug log
+        
+        if (data.status === 'success' && data.data?.subscription?.tier) {
+          console.log('Setting tier to:', data.data.subscription.tier); // Debug log
+          setCurrentTier(data.data.subscription.tier);
+        } else {
+          console.log('No tier found, defaulting to free'); // Debug log
+          setCurrentTier('free');
+        }
+      } catch (error) {
+        console.error('Error fetching tier:', error);
+        setCurrentTier('free');
+      } finally {
+        setIsLoadingTier(false);
+      }
+    };
+
+    fetchCurrentTier();
+  }, [isSignedIn]);
+
   const handleSelectTier = (tierId) => {
     if (tierId === 'free') {
       // Free tier doesn't need payment
@@ -161,15 +199,21 @@ export default function PricingSection({ onSelectTier, currentTier = 'free', sho
 
               <button
                 onClick={() => handleSelectTier(tier.id)}
-                disabled={currentTier === tier.id}
+                disabled={currentTier === tier.id || isLoadingTier}
                 className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 ${
                   currentTier === tier.id
                     ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
                     : tier.buttonStyle
                 }`}
               >
-                {currentTier === tier.id
+                {isLoadingTier
+                  ? 'Loading...'
+                  : currentTier === tier.id
                   ? 'Current Plan'
+                  : currentTier === 'executive'
+                  ? 'Downgrade'
+                  : currentTier === 'pro' && tier.id === 'free'
+                  ? 'Downgrade'
                   : tier.price === 0
                   ? 'Get Started Free'
                   : 'Upgrade Now'}

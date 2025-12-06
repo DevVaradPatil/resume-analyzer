@@ -141,24 +141,23 @@ export async function deleteUserByClerkId(clerkUserId) {
  * @returns {Promise<Object>} The updated user data
  */
 export async function updateUserSubscription(clerkUserId, subscriptionData) {
-  const supabase = getSupabaseAdminClient();
+  // NOTE: This function is DEPRECATED and should not be used.
+  // Subscription data is now stored in user_subscriptions table.
+  // Use subscription-service.js functions instead:
+  // - getOrCreateSubscription()
+  // - getSubscriptionStatus()
+  console.warn('updateUserSubscription() is deprecated. Use subscription-service.js instead.');
   
+  // For backward compatibility, return basic user data
+  const supabase = getSupabaseAdminClient();
   const { data, error } = await supabase
     .from('users')
-    .update({
-      plan: subscriptionData.plan,
-      subscription_status: subscriptionData.status,
-      subscription_renews_at: subscriptionData.renewsAt,
-      billing_customer_id: subscriptionData.customerId,
-      billing_subscription_id: subscriptionData.subscriptionId,
-      updated_at: new Date().toISOString(),
-    })
+    .select('*')
     .eq('clerk_user_id', clerkUserId)
-    .select()
     .single();
   
   if (error) {
-    console.error('Error updating subscription:', error);
+    console.error('Error getting user:', error);
     throw error;
   }
   

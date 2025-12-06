@@ -15,7 +15,11 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "Resume Analyzer - AI-Powered Resume Enhancement | ResumeInsight",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://resumeinsight.vercel.app'),
+  title: {
+    default: 'Resume Analyzer - AI-Powered Resume Enhancement | ResumeInsight',
+    template: '%s | ResumeInsight',
+  },
   description: "Transform your job application process with precision AI analysis. Get personalized insights, close skill gaps, and stand out to recruiters with an optimized resume that gets results.",
   keywords: [
     'resume analyzer',
@@ -32,7 +36,6 @@ export const metadata = {
   authors: [{ name: 'ResumeInsight' }],
   creator: 'ResumeInsight',
   publisher: 'ResumeInsight',
-  metadataBase: new URL('https://resumeinsight.vercel.app'),
   alternates: {
     canonical: '/',
   },

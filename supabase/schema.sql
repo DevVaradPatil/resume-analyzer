@@ -14,7 +14,8 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- =============================================
 -- USERS TABLE
 -- =============================================
--- Stores user information synced from Clerk
+-- Stores user profile information synced from Clerk
+-- Note: Subscription data is stored in user_subscriptions table
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     clerk_user_id TEXT UNIQUE NOT NULL,
@@ -22,11 +23,6 @@ CREATE TABLE IF NOT EXISTS users (
     name TEXT,
     avatar_url TEXT,
     role TEXT DEFAULT 'USER' CHECK (role IN ('USER', 'ADMIN')),
-    plan TEXT DEFAULT 'FREE' CHECK (plan IN ('FREE', 'PRO', 'ENTERPRISE')),
-    subscription_status TEXT DEFAULT 'NONE' CHECK (subscription_status IN ('NONE', 'ACTIVE', 'CANCELED', 'TRIALING')),
-    subscription_renews_at TIMESTAMPTZ NULL,
-    billing_customer_id TEXT NULL,
-    billing_subscription_id TEXT NULL,
     created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
@@ -258,8 +254,6 @@ RETURNS TABLE (
     name TEXT,
     avatar_url TEXT,
     role TEXT,
-    plan TEXT,
-    subscription_status TEXT,
     created_at TIMESTAMPTZ
 ) AS $$
 BEGIN
@@ -271,8 +265,6 @@ BEGIN
         u.name,
         u.avatar_url,
         u.role,
-        u.plan,
-        u.subscription_status,
         u.created_at
     FROM users u
     WHERE u.clerk_user_id = p_clerk_user_id;
@@ -318,3 +310,17 @@ BEGIN
     LIMIT p_limit;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- =============================================
+-- SUBSCRIPTION TABLES
+-- =============================================
+-- Import subscription tables from migration 003
+-- These tables are the ONLY source of subscription data
+
+-- USER_SUBSCRIPTIONS TABLE (defined in migration 003_subscription_tables.sql)
+-- Tracks user subscription tiers and billing
+-- Fields: clerk_user_id, tier, status, payment_provider, current_period_end, etc.
+
+-- FEATURE_USAGE TABLE (defined in migration 003_subscription_tables.sql)
+-- Tracks feature usage counts per user per month
+-- Fields: clerk_user_id, feature_type, usage_period, usage_count, etc.

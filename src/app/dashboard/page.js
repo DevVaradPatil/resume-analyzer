@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
+import SubscriptionDashboard from '../../components/SubscriptionDashboard';
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
@@ -182,6 +183,11 @@ export default function DashboardPage() {
             <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
             <span className="hidden sm:inline">Refresh</span>
           </button>
+        </div>
+
+        {/* Subscription Dashboard */}
+        <div className="mb-8">
+          <SubscriptionDashboard />
         </div>
 
         {/* Error Alert */}

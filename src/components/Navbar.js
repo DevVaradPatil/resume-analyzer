@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { FileText, LayoutDashboard } from "lucide-react";
+import Image from "next/image";
 
 const Navbar = () => {
   const pathname = usePathname();
@@ -29,9 +30,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between py-4">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <FileText className="w-5 h-5 text-white" />
-            </div>
+            <Image src="/logo.svg" alt="ResumeInsight Logo" width={32} height={32} />
             <span className="text-xl font-bold text-slate-800">ResumeInsight</span>
           </Link>
 

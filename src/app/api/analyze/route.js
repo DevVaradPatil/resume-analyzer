@@ -5,7 +5,7 @@ import { extractTextFromPdf } from '../../../lib/pdf-extractor';
 import { parseGeminiResponse } from '../../../lib/response-parser';
 import { saveResumeAnalysis, logAnalysis } from '../../../lib/resume-service';
 import { getOrCreateUser } from '../../../lib/user-sync';
-import { checkFeatureAccess, recordFeatureUsage } from '../../../lib/subscription-service';
+import { checkFeatureAccess, recordFeatureUsage, checkFileSize } from '../../../lib/subscription-service';
 
 // Add GET handler for testing
 export async function GET(request) {
@@ -89,20 +89,34 @@ export async function POST(request) {
       });
     }
 
-    // Check subscription limits
-    const accessCheck = await checkFeatureAccess(userId, 'analyze', fileSize);
-    if (!accessCheck.canUse) {
+    // Check file size against subscription limits
+    const fileSizeCheck = await checkFileSize(userId, fileSize);
+    if (!fileSizeCheck.allowed) {
       return NextResponse.json(
         { 
-          status: 'error', 
-          error: accessCheck.message,
-          reason: accessCheck.reason,
-          tier: accessCheck.tier,
-          limit: accessCheck.limit,
-          used: accessCheck.used,
-          remaining: accessCheck.remaining,
+          status: 'FILE_TOO_LARGE', 
+          error: fileSizeCheck.message,
+          maxSize: fileSizeCheck.maxSize,
+          currentSize: fileSize,
+          tier: fileSizeCheck.tier,
         },
-        { status: 403 }
+        { status: 413 }
+      );
+    }
+
+    // Check feature access (usage limits)
+    const accessCheck = await checkFeatureAccess(userId, 'analyze');
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        { 
+          status: 'LIMIT_REACHED', 
+          error: accessCheck.message,
+          remaining: accessCheck.remaining,
+          limit: accessCheck.limit,
+          tier: accessCheck.tier,
+          resetDate: accessCheck.resetDate,
+        },
+        { status: 429 }
       );
     }
 

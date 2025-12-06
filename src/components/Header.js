@@ -1,7 +1,7 @@
 'use client';
 
-import React from "react";
-import { ArrowLeft, LogOut, User, FileText, BarChart3 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ArrowLeft, LogOut, User, FileText, BarChart3, Crown, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useUser, useClerk, SignedIn, SignedOut } from "@clerk/nextjs";
 
@@ -14,8 +14,27 @@ const Header = ({
   compact = false,
   showUserMenu = true
 }) => {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded, isSignedIn } = useUser();
   const { signOut } = useClerk();
+  const [userTier, setUserTier] = useState(null);
+
+  useEffect(() => {
+    if (isSignedIn) {
+      fetchUserTier();
+    }
+  }, [isSignedIn]);
+
+  const fetchUserTier = async () => {
+    try {
+      const response = await fetch('/api/subscription/status');
+      const data = await response.json();
+      if (data.status === 'success' && data.data?.tier) {
+        setUserTier(data.data.tier);
+      }
+    } catch (error) {
+      console.error('Error fetching tier:', error);
+    }
+  };
 
   const handleSignOut = () => {
     signOut({ redirectUrl: '/' });
@@ -58,16 +77,33 @@ const Header = ({
             <div className="flex items-center gap-2 flex-shrink-0">
               <SignedIn>
                 <div className="relative group">
-                  <button className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg hover:bg-slate-100/60 transition-all duration-200">
+                  <button className="flex items-center gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg hover:bg-slate-100/60 transition-all duration-200 relative">
+                    {/* Executive Badge with Animation */}
+                    {userTier === 'executive' && (
+                      <div className="absolute -top-1 -right-1 z-10">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full blur-sm animate-pulse"></div>
+                          <Crown className="w-4 h-4 text-yellow-400 relative z-10 drop-shadow-lg" />
+                        </div>
+                      </div>
+                    )}
                     {user?.imageUrl ? (
                       <img 
                         src={user.imageUrl} 
                         alt={user.firstName || 'User'} 
-                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-slate-200"
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 ${
+                          userTier === 'executive' 
+                            ? 'border-purple-400 shadow-lg shadow-purple-200' 
+                            : 'border-slate-200'
+                        }`}
                       />
                     ) : (
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                        <User size={14} className="text-blue-600" />
+                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center ${
+                        userTier === 'executive'
+                          ? 'bg-gradient-to-br from-purple-100 to-indigo-100 border-2 border-purple-300'
+                          : 'bg-blue-100'
+                      }`}>
+                        <User size={14} className={userTier === 'executive' ? 'text-purple-600' : 'text-blue-600'} />
                       </div>
                     )}
                     <span className="hidden md:block text-sm font-medium text-slate-700 max-w-[100px] truncate">
@@ -78,10 +114,22 @@ const Header = ({
                   {/* Dropdown Menu */}
                   <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="py-2">
-                      <div className="px-4 py-2 border-b border-slate-100">
-                        <p className="text-sm font-medium text-slate-800 truncate">
-                          {user?.firstName} {user?.lastName}
-                        </p>
+                      <div className={`px-4 py-2 border-b ${
+                        userTier === 'executive' 
+                          ? 'border-purple-100 bg-gradient-to-r from-purple-50 to-indigo-50' 
+                          : 'border-slate-100'
+                      }`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-sm font-medium text-slate-800 truncate">
+                            {user?.firstName} {user?.lastName}
+                          </p>
+                          {userTier === 'executive' && (
+                            <div className="flex items-center gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs px-2 py-0.5 rounded-full">
+                              <Crown className="w-3 h-3" />
+                              <span>VIP</span>
+                            </div>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-500 truncate">
                           {user?.emailAddresses?.[0]?.emailAddress}
                         </p>
