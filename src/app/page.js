@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import {
   FileText,
   Target,
@@ -19,6 +20,9 @@ import {
   GitCompare,
 } from "lucide-react";
 import HeroSection from "../components/HeroSection";
+import Navbar from "../components/Navbar";
+import PricingSection from "../components/PricingSection";
+import { AdWrapper, HeaderBannerAd, FooterBannerAd } from "../components/ads";
 
 export default function HomePage() {
   // State to store random values for background animations
@@ -114,6 +118,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <Navbar />
+
       <HeroSection />
 
       {/* Stats Section */}
@@ -617,6 +623,16 @@ export default function HomePage() {
         ></motion.div>
       </motion.section>
 
+      {/* Ad Section - Between content and pricing (non-intrusive) */}
+      <AdWrapper>
+        <div className="bg-slate-50 border-y border-slate-200">
+          <HeaderBannerAd className="py-4" />
+        </div>
+      </AdWrapper>
+
+      {/* Pricing Section */}
+      <PricingSection />
+
       {/* CTA Section */}
       <section className="py-20 sm:py-24 relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 -z-10"></div>
@@ -778,6 +794,11 @@ export default function HomePage() {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* Footer Ad - Before site footer */}
+      <AdWrapper>
+        <FooterBannerAd />
+      </AdWrapper>
     </div>
   );
 }

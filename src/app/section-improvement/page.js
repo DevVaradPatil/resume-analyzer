@@ -13,7 +13,9 @@ import {
   FileText,
   Star,
 } from 'lucide-react';
-import Header from '../../components/Header';
+import Navbar from '../../components/Navbar';
+import UpgradeModal from '../../components/UpgradeModal';
+import { AdWrapper, ResultsAd, FooterBannerAd } from '../../components/ads';
 
 export default function SectionImprovementPage() {
   const [selectedSection, setSelectedSection] = useState('');
@@ -22,6 +24,8 @@ export default function SectionImprovementPage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [copiedText, setCopiedText] = useState('');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeData, setUpgradeData] = useState(null);
 
   const sectionTypes = [
     {
@@ -91,11 +95,24 @@ export default function SectionImprovementPage() {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+      const data = await response.json();
+
+      // Handle subscription limit reached
+      if (data.status === 'LIMIT_REACHED') {
+        setUpgradeData({
+          feature: 'improve',
+          tier: data.tier,
+          remaining: data.remaining,
+          limit: data.limit,
+          resetDate: data.resetDate,
+        });
+        setShowUpgradeModal(true);
+        return;
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Server error: ${response.status}`);
+      }
 
       if (data.status === 'error') {
         throw new Error(data.error || 'Server error occurred');
@@ -137,13 +154,7 @@ export default function SectionImprovementPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-emerald-50">
-      <Header
-        title="Section Enhancement"
-        subtitle="Improve specific sections with AI-powered suggestions"
-        icon={Edit3}
-        iconColor="text-violet-600"
-        backTo="/"
-      />
+      <Navbar />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <div className="space-y-8">
@@ -605,6 +616,11 @@ export default function SectionImprovementPage() {
                     </div>
                   </div>
                 )}
+                
+                {/* Ad after results */}
+                <AdWrapper>
+                  <ResultsAd className="mt-8" />
+                </AdWrapper>
             </div>
           )}
         </div>
@@ -646,6 +662,20 @@ export default function SectionImprovementPage() {
           </div>
         </section>
       )}
+
+      {/* Footer Ad */}
+      <AdWrapper>
+        <FooterBannerAd />
+      </AdWrapper>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature="improve"
+        currentTier={upgradeData?.tier}
+        usageData={upgradeData}
+      />
     </div>
   );
 }

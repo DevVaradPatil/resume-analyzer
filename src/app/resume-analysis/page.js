@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { FileText } from 'lucide-react';
-import Header from '../../components/Header';
+import Navbar from '../../components/Navbar';
 import FileUpload from '../../components/FileUpload';
+import UpgradeModal from '../../components/UpgradeModal';
+import { AdWrapper, SidebarAd, ResultsAd, FooterBannerAd } from '../../components/ads';
 import { 
   trackResumeUpload, 
   trackAnalysisStart, 
@@ -16,6 +18,8 @@ export default function ResumeAnalysisPage() {
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeData, setUpgradeData] = useState(null);
 
   useEffect(() => {
     // Track page view when component mounts
@@ -45,11 +49,37 @@ export default function ResumeAnalysisPage() {
         body: formData,
       });
       
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      
+      // Handle subscription limit reached
+      if (data.status === 'LIMIT_REACHED') {
+        setUpgradeData({
+          feature: 'analyze',
+          tier: data.tier,
+          remaining: data.remaining,
+          limit: data.limit,
+          resetDate: data.resetDate,
+        });
+        setShowUpgradeModal(true);
+        return;
       }
       
-      const data = await res.json();
+      // Handle file too large
+      if (data.status === 'FILE_TOO_LARGE') {
+        setUpgradeData({
+          feature: 'analyze',
+          tier: data.tier,
+          fileSizeError: true,
+          maxSize: data.maxSize,
+          currentSize: data.currentSize,
+        });
+        setShowUpgradeModal(true);
+        return;
+      }
+      
+      if (!res.ok) {
+        throw new Error(data.error || `Server error: ${res.status}`);
+      }
       
       if (data.status === 'error') {
         throw new Error(data.error || 'Server error occurred');
@@ -469,13 +499,7 @@ export default function ResumeAnalysisPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <Header
-        title="Resume & Job Match Analysis"
-        subtitle="Upload your resume and job description for compatibility insights"
-        icon={FileText}
-        iconColor="text-blue-600"
-        backTo="/"
-      />
+      <Navbar />
       
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <div className="space-y-8">
@@ -546,7 +570,15 @@ export default function ResumeAnalysisPage() {
           )}
           
           {/* Results */}
-          {result && !isLoading && renderJobAnalysisResults(result)}
+          {result && !isLoading && (
+            <>
+              {renderJobAnalysisResults(result)}
+              {/* Ad after results - non-intrusive placement */}
+              <AdWrapper>
+                <ResultsAd className="mt-8" />
+              </AdWrapper>
+            </>
+          )}
         </div>
       </main>
 
@@ -580,6 +612,20 @@ export default function ResumeAnalysisPage() {
           </div>
         </section>
       )}
+
+      {/* Footer Ad - Before site footer */}
+      <AdWrapper>
+        <FooterBannerAd />
+      </AdWrapper>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature="analyze"
+        currentTier={upgradeData?.tier}
+        usageData={upgradeData}
+      />
     </div>
   );
 }

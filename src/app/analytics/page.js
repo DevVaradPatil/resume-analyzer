@@ -2,13 +2,17 @@
 
 import React, { useState } from 'react';
 import { BarChart3 } from 'lucide-react';
-import Header from '../../components/Header';
+import Navbar from '../../components/Navbar';
 import FileUpload from '../../components/FileUpload';
+import UpgradeModal from '../../components/UpgradeModal';
+import { AdWrapper, ResultsAd, FooterBannerAd } from '../../components/ads';
 
 export default function AnalyticsPage() {
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeData, setUpgradeData] = useState(null);
 
   const handleAnalysis = async (file) => {
     const formData = new FormData();
@@ -24,11 +28,37 @@ export default function AnalyticsPage() {
         body: formData,
       });
       
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      
+      // Handle subscription limit reached
+      if (data.status === 'LIMIT_REACHED') {
+        setUpgradeData({
+          feature: 'analytics',
+          tier: data.tier,
+          remaining: data.remaining,
+          limit: data.limit,
+          resetDate: data.resetDate,
+        });
+        setShowUpgradeModal(true);
+        return;
       }
       
-      const data = await res.json();
+      // Handle file too large
+      if (data.status === 'FILE_TOO_LARGE') {
+        setUpgradeData({
+          feature: 'analytics',
+          tier: data.tier,
+          fileSizeError: true,
+          maxSize: data.maxSize,
+          currentSize: data.currentSize,
+        });
+        setShowUpgradeModal(true);
+        return;
+      }
+      
+      if (!res.ok) {
+        throw new Error(data.error || `Server error: ${res.status}`);
+      }
       
       if (data.status === 'error') {
         throw new Error(data.error || 'Server error occurred');
@@ -341,13 +371,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <Header 
-        title="Resume Analytics Dashboard"
-        subtitle="Get comprehensive insights and analytics about your resume quality"
-        icon={BarChart3}
-        iconColor="text-emerald-600"
-        backTo="/"
-      />
+      <Navbar />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <div className="space-y-8">
@@ -420,7 +444,15 @@ export default function AnalyticsPage() {
           )}
           
           {/* Results */}
-          {result && !isLoading && renderAnalyticsResults(result)}
+          {result && !isLoading && (
+            <>
+              {renderAnalyticsResults(result)}
+              {/* Ad after results */}
+              <AdWrapper>
+                <ResultsAd className="mt-8" />
+              </AdWrapper>
+            </>
+          )}
         </div>
       </main>
 
@@ -456,6 +488,20 @@ export default function AnalyticsPage() {
           </div>
         </section>
       )}
+
+      {/* Footer Ad */}
+      <AdWrapper>
+        <FooterBannerAd />
+      </AdWrapper>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature="analytics"
+        currentTier={upgradeData?.tier}
+        usageData={upgradeData}
+      />
     </div>
   );
 }

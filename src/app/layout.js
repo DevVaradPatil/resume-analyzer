@@ -1,8 +1,12 @@
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { Analytics } from '@vercel/analytics/react';
+import { ClerkProvider } from '@clerk/nextjs';
 import { structuredData, organizationData } from '../lib/structured-data';
 import Footer from '../components/Footer';
+import SubscriptionProvider from '../components/SubscriptionProvider';
+import { AdProvider } from '../components/ads';
+import { ADSENSE_PUBLISHER_ID, AD_CONFIG } from '../lib/adsense-config';
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -69,30 +73,59 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(structuredData),
-          }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(organizationData),
-          }}
-        />
-      </head>
-      <body
-        className={`${poppins.variable} font-sans antialiased min-h-screen flex flex-col`}
-      >
-        <main className="flex-grow">
-          {children}
-        </main>
-        <Footer />
-        <Analytics />
-      </body>
-    </html>
+    <ClerkProvider
+      appearance={{
+        baseTheme: undefined,
+        variables: {
+          colorPrimary: '#3b82f6',
+          colorText: '#1e293b',
+          colorBackground: '#ffffff',
+          colorInputBackground: '#ffffff',
+          colorInputText: '#1e293b',
+        },
+      }}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      afterSignInUrl="/resume-analysis"
+      afterSignUpUrl="/resume-analysis"
+    >
+      <html lang="en">
+        <head>
+          {/* Google AdSense Script - Only load if ads are enabled */}
+          {AD_CONFIG.enabled && (
+            <script
+              async
+              src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}`}
+              crossOrigin="anonymous"
+            />
+          )}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(structuredData),
+            }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(organizationData),
+            }}
+          />
+        </head>
+        <body
+          className={`${poppins.variable} font-sans antialiased min-h-screen flex flex-col`}
+        >
+          <SubscriptionProvider>
+            <AdProvider>
+              <main className="flex-grow">
+                {children}
+              </main>
+              <Footer />
+            </AdProvider>
+          </SubscriptionProvider>
+          <Analytics />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

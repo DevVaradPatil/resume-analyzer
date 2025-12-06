@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { improveResumeSectionWithGemini } from '../../../lib/gemini-service';
 import { parseGeminiResponse } from '../../../lib/response-parser';
+import { logAnalysis } from '../../../lib/resume-service';
+import { checkFeatureAccess, recordFeatureUsage } from '../../../lib/subscription-service';
 
 // Add GET handler for testing
 export async function GET(request) {
@@ -12,6 +15,18 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const startTime = Date.now();
+  
+  // Get authenticated user
+  const { userId } = await auth();
+  
+  if (!userId) {
+    return NextResponse.json(
+      { status: 'error', error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+  
   try {
     const body = await request.json();
     
@@ -41,6 +56,22 @@ export async function POST(request) {
       );
     }
 
+    // Check feature access (usage limits)
+    const accessCheck = await checkFeatureAccess(userId, 'improve');
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          status: 'LIMIT_REACHED',
+          error: accessCheck.message,
+          remaining: accessCheck.remaining,
+          limit: accessCheck.limit,
+          tier: accessCheck.tier,
+          resetDate: accessCheck.resetDate,
+        },
+        { status: 429 }
+      );
+    }
+
     try {
       console.log(`Improving ${section_type} section with Gemini API`);
       const geminiResponse = await improveResumeSectionWithGemini(
@@ -55,6 +86,34 @@ export async function POST(request) {
       if (typeof improvementResult === 'object' && improvementResult !== null) {
         improvementResult.status = 'success';
         
+        const durationMs = Date.now() - startTime;
+        
+        // Record feature usage for subscription tracking
+        try {
+          await recordFeatureUsage(userId, 'improve', {
+            sectionType: section_type.toLowerCase(),
+            originalLength: original_text.length,
+            score: improvementResult.improvement_score,
+          });
+        } catch (usageError) {
+          console.error('Error recording usage (non-blocking):', usageError);
+        }
+        
+        // Log the analysis
+        try {
+          await logAnalysis({
+            clerkUserId: userId,
+            rawInput: original_text.substring(0, 5000),
+            modelUsed: 'gemini-2.5-flash',
+            analysisType: 'section_improvement',
+            sectionType: section_type.toLowerCase(),
+            success: true,
+            durationMs: durationMs,
+          });
+        } catch (dbError) {
+          console.error('Database log error (non-blocking):', dbError);
+        }
+        
         // Log basic info about the result
         console.log(`Section improvement complete - Score: ${improvementResult.improvement_score || 'N/A'}`);
         return NextResponse.json(improvementResult);
@@ -67,6 +126,23 @@ export async function POST(request) {
       }
     } catch (error) {
       console.error('Section improvement error:', error);
+      
+      // Log failed analysis
+      try {
+        await logAnalysis({
+          clerkUserId: userId,
+          rawInput: original_text?.substring(0, 5000),
+          modelUsed: 'gemini-2.5-flash',
+          analysisType: 'section_improvement',
+          sectionType: section_type?.toLowerCase(),
+          success: false,
+          errorMessage: error.message,
+          durationMs: Date.now() - startTime,
+        });
+      } catch (logError) {
+        console.error('Failed to log error:', logError);
+      }
+      
       return NextResponse.json(
         { status: 'error', error: `Section improvement error: ${error.message}` },
         { status: 500 }

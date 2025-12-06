@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import Header from '../../components/Header';
+import Navbar from '../../components/Navbar';
 import Link from 'next/link';
 import { FileText, Target, Users, TrendingUp } from 'lucide-react';
+import { AdWrapper, HeaderBannerAd, InFeedAd, FooterBannerAd } from '../../components/ads';
 
 export default function BlogPage() {
   const articles = [
@@ -46,12 +47,17 @@ export default function BlogPage() {
   ];
 
   return (
-    <>
-      <Header 
-        title="Resume Tips & Resources" 
-        subtitle="Expert advice for career success"
-      />
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <Navbar />
+      
+      {/* Header Ad */}
+      <AdWrapper>
+        <div className="pt-16">
+          <HeaderBannerAd />
+        </div>
+      </AdWrapper>
+      
+      <main className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           {/* Header Section */}
           <header className="text-center mb-16">
@@ -66,53 +72,61 @@ export default function BlogPage() {
 
           {/* Articles Grid */}
           <section className="space-y-8">
-            {articles.map((article) => {
+            {articles.map((article, index) => {
               const IconComponent = article.icon;
               return (
-                <article
-                  key={article.id}
-                  className="bg-white rounded-2xl shadow-lg border border-slate-100 p-8 hover:shadow-xl transition-shadow duration-300"
-                >
-                  <div className="flex items-start space-x-6">
-                    <div className="flex-shrink-0">
-                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                        <IconComponent className="w-6 h-6 text-blue-600" />
+                <React.Fragment key={article.id}>
+                  <article
+                    className="bg-white rounded-2xl shadow-lg border border-slate-100 p-8 hover:shadow-xl transition-shadow duration-300"
+                  >
+                    <div className="flex items-start space-x-6">
+                      <div className="flex-shrink-0">
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                          <IconComponent className="w-6 h-6 text-blue-600" />
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <header>
+                          <h2 className="text-2xl font-semibold text-slate-800 mb-3 hover:text-blue-600 transition-colors">
+                            <Link href={`/blog/${article.slug}`}>
+                              {article.title}
+                            </Link>
+                          </h2>
+                          <div className="flex items-center text-sm text-slate-500 mb-4 space-x-4">
+                            <time dateTime={article.date}>
+                              {new Date(article.date).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </time>
+                            <span>•</span>
+                            <span>{article.readTime}</span>
+                          </div>
+                        </header>
+                        <p className="text-slate-600 leading-relaxed mb-6">
+                          {article.excerpt}
+                        </p>
+                        <Link
+                          href={`/blog/${article.slug}`}
+                          className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          Read full article
+                          <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="m9 18 6-6-6-6"/>
+                          </svg>
+                        </Link>
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <header>
-                        <h2 className="text-2xl font-semibold text-slate-800 mb-3 hover:text-blue-600 transition-colors">
-                          <Link href={`/blog/${article.slug}`}>
-                            {article.title}
-                          </Link>
-                        </h2>
-                        <div className="flex items-center text-sm text-slate-500 mb-4 space-x-4">
-                          <time dateTime={article.date}>
-                            {new Date(article.date).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </time>
-                          <span>•</span>
-                          <span>{article.readTime}</span>
-                        </div>
-                      </header>
-                      <p className="text-slate-600 leading-relaxed mb-6">
-                        {article.excerpt}
-                      </p>
-                      <Link
-                        href={`/blog/${article.slug}`}
-                        className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium"
-                      >
-                        Read full article
-                        <svg className="w-4 h-4 ml-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="m9 18 6-6-6-6"/>
-                        </svg>
-                      </Link>
-                    </div>
-                  </div>
-                </article>
+                  </article>
+                  
+                  {/* Show in-feed ad after 2nd article */}
+                  {index === 1 && (
+                    <AdWrapper>
+                      <InFeedAd />
+                    </AdWrapper>
+                  )}
+                </React.Fragment>
               );
             })}
           </section>
@@ -137,6 +151,11 @@ export default function BlogPage() {
           </section>
         </div>
       </main>
-    </>
+      
+      {/* Footer Ad */}
+      <AdWrapper>
+        <FooterBannerAd />
+      </AdWrapper>
+    </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useParams } from 'next/navigation';
-import Header from '../../../components/Header';
+import Navbar from '../../../components/Navbar';
 import Link from 'next/link';
 import { ArrowLeft, FileText, Calendar, Clock, User } from 'lucide-react';
 
@@ -186,15 +186,10 @@ export default function DynamicBlogPost() {
   }
 
   return (
-    <>
-      <Header 
-        title="Blog Article" 
-        subtitle="Expert career advice and tips"
-        icon={FileText}
-        backTo="/blog"
-      />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <Navbar />
       
-      <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-20">
+      <main className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <article className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
             {/* Article Header */}
@@ -284,6 +279,6 @@ export default function DynamicBlogPost() {
           </div>
         </div>
       </main>
-    </>
+    </div>
   );
 }

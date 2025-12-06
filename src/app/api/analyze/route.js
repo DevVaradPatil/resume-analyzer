@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { analyzeResumeWithGemini } from '../../../lib/gemini-service';
 import { extractTextFromPdf } from '../../../lib/pdf-extractor';
 import { parseGeminiResponse } from '../../../lib/response-parser';
+import { saveResumeAnalysis, logAnalysis } from '../../../lib/resume-service';
+import { getOrCreateUser } from '../../../lib/user-sync';
+import { checkFeatureAccess, recordFeatureUsage } from '../../../lib/subscription-service';
 
 // Add GET handler for testing
 export async function GET(request) {
@@ -32,6 +36,18 @@ export async function GET(request) {
 
 export async function POST(request) {
   console.log('POST /api/analyze - Starting request processing');
+  const startTime = Date.now();
+  
+  // Get authenticated user
+  const { userId } = await auth();
+  const user = await currentUser();
+  
+  if (!userId) {
+    return NextResponse.json(
+      { status: 'error', error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
   
   try {
     // Check environment variables first
@@ -58,6 +74,38 @@ export async function POST(request) {
       );
     }
 
+    // Get file size for subscription check
+    const fileBuffer = await resumeFile.arrayBuffer();
+    const fileSize = fileBuffer.byteLength;
+
+    // Ensure user exists in database first
+    if (user) {
+      await getOrCreateUser({
+        id: userId,
+        emailAddresses: user.emailAddresses,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        imageUrl: user.imageUrl,
+      });
+    }
+
+    // Check subscription limits
+    const accessCheck = await checkFeatureAccess(userId, 'analyze', fileSize);
+    if (!accessCheck.canUse) {
+      return NextResponse.json(
+        { 
+          status: 'error', 
+          error: accessCheck.message,
+          reason: accessCheck.reason,
+          tier: accessCheck.tier,
+          limit: accessCheck.limit,
+          used: accessCheck.used,
+          remaining: accessCheck.remaining,
+        },
+        { status: 403 }
+      );
+    }
+
     // Get job description
     const jobDescription = formData.get('job_description') || '';
 
@@ -81,7 +129,7 @@ export async function POST(request) {
     let resumeText;
     try {
       console.log('Converting file to buffer...');
-      const pdfBuffer = Buffer.from(await resumeFile.arrayBuffer());
+      const pdfBuffer = Buffer.from(fileBuffer);
       console.log('Buffer created, size:', pdfBuffer.length);
       
       console.log('Extracting text from PDF...');
@@ -107,6 +155,48 @@ export async function POST(request) {
       if (typeof analysisResult === 'object' && analysisResult !== null) {
         analysisResult.status = 'success';
         
+        const durationMs = Date.now() - startTime;
+        
+        // Record feature usage for subscription tracking
+        try {
+          await recordFeatureUsage(userId, 'analyze', {
+            fileName: resumeFile.name,
+            fileSize: fileSize,
+            score: analysisResult.score,
+          });
+        } catch (usageError) {
+          console.error('Error recording usage (non-blocking):', usageError);
+        }
+        
+        // Save to database (async, don't await to not block response)
+        try {
+          // Save resume analysis
+          const savedResume = await saveResumeAnalysis({
+            clerkUserId: userId,
+            fileName: resumeFile.name,
+            content: resumeText,
+            analysisResult: analysisResult,
+            analysisType: 'job_match',
+            jobDescription: jobDescription,
+            score: analysisResult.score,
+          });
+          
+          // Log the analysis
+          await logAnalysis({
+            clerkUserId: userId,
+            resumeId: savedResume?.id,
+            rawInput: resumeText.substring(0, 5000), // Limit stored text
+            jobDescription: jobDescription?.substring(0, 2000),
+            modelUsed: 'gemini-2.5-flash',
+            analysisType: 'job_match',
+            success: true,
+            durationMs: durationMs,
+          });
+        } catch (dbError) {
+          console.error('Database error (non-blocking):', dbError);
+          // Continue with response even if DB save fails
+        }
+        
         // Log basic info about the result
         console.log(`Analysis complete - Score: ${analysisResult.score || 'N/A'}`);
         return NextResponse.json(analysisResult);
@@ -119,6 +209,23 @@ export async function POST(request) {
       }
     } catch (error) {
       console.error('Analysis error:', error);
+      
+      // Log failed analysis
+      try {
+        await logAnalysis({
+          clerkUserId: userId,
+          rawInput: resumeText?.substring(0, 5000),
+          jobDescription: jobDescription?.substring(0, 2000),
+          modelUsed: 'gemini-2.5-flash',
+          analysisType: 'job_match',
+          success: false,
+          errorMessage: error.message,
+          durationMs: Date.now() - startTime,
+        });
+      } catch (logError) {
+        console.error('Failed to log error:', logError);
+      }
+      
       return NextResponse.json(
         { status: 'error', error: `Analysis error: ${error.message}` },
         { status: 500 }

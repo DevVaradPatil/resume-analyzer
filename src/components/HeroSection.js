@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
 import {
   FileText,
   ArrowRight,
@@ -87,20 +88,37 @@ const HeroSection = () => {
               className="flex flex-wrap items-center gap-4"
               variants={fadeIn}
             >
-              <Link
-                href="/resume-analysis"
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all duration-300 flex items-center gap-2 shadow-lg shadow-blue-200"
-              >
-                Start Free Analysis
-                <ArrowRight size={18} />
-              </Link>
-              <Link
-                href="/section-improvement"
-                className="px-6 py-3 bg-white hover:bg-slate-50 text-slate-800 rounded-xl font-medium transition-all duration-300 border border-slate-200 flex items-center gap-2"
-              >
-                Improve Sections
-                <Edit3 size={18} />
-              </Link>
+              <SignedIn>
+                <Link
+                  href="/resume-analysis"
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all duration-300 flex items-center gap-2 shadow-lg shadow-blue-200"
+                >
+                  Start Analysis
+                  <ArrowRight size={18} />
+                </Link>
+                <Link
+                  href="/section-improvement"
+                  className="px-6 py-3 bg-white hover:bg-slate-50 text-slate-800 rounded-xl font-medium transition-all duration-300 border border-slate-200 flex items-center gap-2"
+                >
+                  Improve Sections
+                  <Edit3 size={18} />
+                </Link>
+              </SignedIn>
+              <SignedOut>
+                <Link
+                  href="/sign-up"
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all duration-300 flex items-center gap-2 shadow-lg shadow-blue-200"
+                >
+                  Get Started Free
+                  <ArrowRight size={18} />
+                </Link>
+                <Link
+                  href="/sign-in"
+                  className="px-6 py-3 bg-white hover:bg-slate-50 text-slate-800 rounded-xl font-medium transition-all duration-300 border border-slate-200 flex items-center gap-2"
+                >
+                  Sign In
+                </Link>
+              </SignedOut>
             </motion.div>
 
             <motion.div
