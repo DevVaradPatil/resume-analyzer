@@ -3,12 +3,19 @@ import { auth } from '@clerk/nextjs/server';
 import Razorpay from 'razorpay';
 import { SUBSCRIPTION_TIERS } from '../../../../lib/subscription-service';
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
-
 export async function POST(request) {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    console.error('Razorpay keys are missing');
+    return NextResponse.json(
+      { status: 'error', error: 'Server configuration error' },
+      { status: 500 }
+    );
+  }
+
+  const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
   try {
     const { userId } = await auth();
     
