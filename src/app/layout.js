@@ -7,6 +7,7 @@ import Footer from '../components/Footer';
 import SubscriptionProvider from '../components/SubscriptionProvider';
 import { AdProvider } from '../components/ads';
 import { ADSENSE_PUBLISHER_ID, AD_CONFIG } from '../lib/adsense-config';
+import Script from 'next/script';
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -113,6 +114,10 @@ export default function RootLayout({ children }) {
             dangerouslySetInnerHTML={{
               __html: JSON.stringify(organizationData),
             }}
+          />
+          <Script
+            src="https://checkout.razorpay.com/v1/checkout.js"
+            strategy="lazyOnload"
           />
         </head>
         <body

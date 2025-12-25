@@ -9,7 +9,7 @@ export const structuredData = {
   "offers": {
     "@type": "Offer",
     "price": "0",
-    "priceCurrency": "USD"
+    "priceCurrency": "INR"
   },
   "creator": {
     "@type": "Organization",

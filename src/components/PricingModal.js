@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Zap, Rocket, Crown, Sparkles } from 'lucide-react';
+import AlertModal from './AlertModal';
 
 const PRICING_TIERS = [
   {
@@ -25,7 +26,7 @@ const PRICING_TIERS = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 9.99,
+    price: 249,
     description: 'Best for active job seekers',
     icon: Rocket,
     iconColor: 'text-blue-600',
@@ -44,7 +45,7 @@ const PRICING_TIERS = [
   {
     id: 'executive',
     name: 'Executive',
-    price: 24.99,
+    price: 999,
     description: 'Unlimited access for professionals',
     icon: Crown,
     iconColor: 'text-purple-600',
@@ -69,6 +70,7 @@ export default function PricingModal({
 }) {
   const [selectedTier, setSelectedTier] = useState('free');
   const [isLoading, setIsLoading] = useState(false);
+  const [alertState, setAlertState] = useState({ isOpen: false, type: 'success', message: '' });
 
   if (!isOpen) return null;
 
@@ -90,16 +92,83 @@ export default function PricingModal({
         }
       } catch (error) {
         console.error('Error initializing subscription:', error);
+      } finally {
+        setIsLoading(false);
       }
     } else {
       // For paid tiers, open payment gateway
-      console.log('Open Payment Gateway');
-      if (onSelectTier) {
-        onSelectTier(selectedTier);
+      try {
+        // 1. Create Order
+        const response = await fetch('/api/subscription/create-order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ tier: selectedTier }),
+        });
+
+        const data = await response.json();
+
+        if (data.status !== 'success') {
+          throw new Error(data.error || 'Failed to create order');
+        }
+
+        // 2. Initialize Razorpay
+        const options = {
+          key: data.keyId,
+          amount: data.amount,
+          currency: data.currency,
+          name: 'Resume Analyzer',
+          description: `${PRICING_TIERS.find(t => t.id === selectedTier).name} Subscription`,
+          order_id: data.orderId,
+          handler: async function (response) {
+            try {
+              // 3. Verify Payment
+              const verifyResponse = await fetch('/api/subscription/verify-payment', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  tier: selectedTier,
+                }),
+              });
+
+              const verifyData = await verifyResponse.json();
+
+              if (verifyData.status === 'success') {
+                if (onSelectTier) {
+                  onSelectTier(selectedTier);
+                }
+                onClose();
+                // Optionally refresh the page or update context
+                window.location.reload();
+              } else {
+                throw new Error(verifyData.error || 'Payment verification failed');
+              }
+            } catch (error) {
+              console.error('Payment verification error:', error);
+              setAlertState({ isOpen: true, type: 'error', message: 'Payment verification failed. Please contact support.' });
+            }
+          },
+          theme: {
+            color: '#2563eb',
+          },
+        };
+
+        const rzp1 = new window.Razorpay(options);
+        rzp1.open();
+
+      } catch (error) {
+        console.error('Payment initialization error:', error);
+        setAlertState({ isOpen: true, type: 'error', message: 'Failed to initialize payment. Please try again.' });
+      } finally {
+        setIsLoading(false);
       }
     }
-    
-    setIsLoading(false);
   };
 
   return (
@@ -180,7 +249,7 @@ export default function PricingModal({
                   <p className="text-sm text-slate-500 mb-3">{tier.description}</p>
 
                   <div className="mb-4">
-                    <span className="text-2xl font-bold text-slate-800">${tier.price}</span>
+                    <span className="text-2xl font-bold text-slate-800">₹{tier.price}</span>
                     {tier.price > 0 && (
                       <span className="text-slate-500 text-sm">/month</span>
                     )}
@@ -239,6 +308,12 @@ export default function PricingModal({
           </div>
         </motion.div>
       </div>
+      <AlertModal 
+        isOpen={alertState.isOpen} 
+        onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))} 
+        type={alertState.type} 
+        message={alertState.message} 
+      />
     </AnimatePresence>
   );
 }

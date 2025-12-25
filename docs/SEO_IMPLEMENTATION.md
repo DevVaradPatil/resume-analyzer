@@ -202,8 +202,8 @@ export default function BlogPost() {
   "description": "Professional resume analysis service",
   "offers": {
     "@type": "Offer",
-    "price": "9.99",
-    "priceCurrency": "USD"
+    "price": "249",
+    "priceCurrency": "INR"
   }
 }} />
 ```

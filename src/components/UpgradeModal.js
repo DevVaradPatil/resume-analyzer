@@ -1,83 +1,177 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, AlertTriangle, Check, Rocket, Crown } from 'lucide-react';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Zap, AlertTriangle, Check, Rocket, Crown } from "lucide-react";
+import AlertModal from "./AlertModal";
 
 const UPGRADE_TIERS = [
   {
-    id: 'pro',
-    name: 'Pro',
-    price: 9.99,
+    id: "pro",
+    name: "Pro",
+    price: 249,
     icon: Rocket,
-    iconColor: 'text-blue-600',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-300',
-    buttonStyle: 'bg-blue-600 text-white hover:bg-blue-700',
+    iconColor: "text-blue-600",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-300",
+    buttonStyle: "bg-blue-600 text-white hover:bg-blue-700",
     popular: true,
     features: [
-      '50 analyses per feature/month',
-      '10MB file size limit',
-      'Advanced ATS optimization',
-      'Priority support',
+      "50 analyses per feature/month",
+      "10MB file size limit",
+      "Advanced ATS optimization",
+      "Priority support",
     ],
   },
   {
-    id: 'executive',
-    name: 'Executive',
-    price: 24.99,
+    id: "executive",
+    name: "Executive",
+    price: 999,
     icon: Crown,
-    iconColor: 'text-purple-600',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-300',
-    buttonStyle: 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700',
+    iconColor: "text-purple-600",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-300",
+    buttonStyle:
+      "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700",
     features: [
-      'Unlimited analyses',
-      '25MB file size limit',
-      'Premium ATS optimization',
-      '24/7 Priority support',
+      "Unlimited analyses",
+      "25MB file size limit",
+      "Premium ATS optimization",
+      "24/7 Priority support",
     ],
   },
 ];
 
-export default function UpgradeModal({ 
-  isOpen, 
-  onClose, 
-  reason = 'LIMIT_REACHED',
-  featureType = 'analyze',
-  currentTier = 'free',
+export default function UpgradeModal({
+  isOpen,
+  onClose,
+  reason = "LIMIT_REACHED",
+  featureType = "analyze",
+  currentTier = "free",
   usageInfo = null,
 }) {
+  const [alertState, setAlertState] = useState({
+    isOpen: false,
+    type: "success",
+    message: "",
+  });
+
   if (!isOpen) return null;
 
-  const handleUpgrade = (tierId) => {
-    console.log('Open Payment Gateway');
-    // Payment gateway integration will be added here
-    onClose();
+  const handleUpgrade = async (tierId) => {
+    try {
+      // 1. Create Order
+      const response = await fetch("/api/subscription/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tier: tierId }),
+      });
+
+      const data = await response.json();
+
+      if (data.status !== "success") {
+        throw new Error(data.error || "Failed to create order");
+      }
+
+      // 2. Initialize Razorpay
+      const options = {
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        name: "Resume Analyzer",
+        description: `${
+          UPGRADE_TIERS.find((t) => t.id === tierId)?.name
+        } Subscription`,
+        order_id: data.orderId,
+
+        handler: async function (response) {
+          try {
+            // 3. Verify Payment
+            const verifyResponse = await fetch(
+              "/api/subscription/verify-payment",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  tier: tierId,
+                }),
+              }
+            );
+
+            const verifyData = await verifyResponse.json();
+
+            if (verifyData.status === "success") {
+              setAlertState({
+                isOpen: true,
+                type: "success",
+                message: "Subscription updated successfully!",
+              });
+
+              setTimeout(() => {
+                onClose();
+                window.location.reload();
+              }, 2000);
+            } else {
+              throw new Error(
+                verifyData.error || "Payment verification failed"
+              );
+            }
+          } catch (error) {
+            console.error("Payment verification error:", error);
+            setAlertState({
+              isOpen: true,
+              type: "error",
+              message: "Payment verification failed. Please contact support.",
+            });
+          }
+        },
+
+        theme: {
+          color: "#2563eb",
+        },
+      };
+
+      const rzp1 = new window.Razorpay(options);
+      rzp1.open();
+    } catch (error) {
+      console.error("Payment initialization error:", error);
+      setAlertState({
+        isOpen: true,
+        type: "error",
+        message: "Failed to initialize payment. Please try again.",
+      });
+    }
   };
 
   const getReasonMessage = () => {
     switch (reason) {
-      case 'LIMIT_REACHED':
+      case "LIMIT_REACHED":
         return {
-          title: 'Monthly Limit Reached',
+          title: "Monthly Limit Reached",
           message: `You've used all your free ${featureType} credits for this month.`,
           icon: AlertTriangle,
-          iconColor: 'text-amber-500',
+          iconColor: "text-amber-500",
         };
-      case 'FILE_TOO_LARGE':
+      case "FILE_TOO_LARGE":
         return {
-          title: 'File Size Exceeded',
-          message: 'Your file exceeds the 2MB limit for the Free tier.',
+          title: "File Size Exceeded",
+          message: "Your file exceeds the 2MB limit for the Free tier.",
           icon: AlertTriangle,
-          iconColor: 'text-amber-500',
+          iconColor: "text-amber-500",
         };
       default:
         return {
-          title: 'Upgrade Required',
-          message: 'Upgrade to unlock more features and higher limits.',
+          title: "Upgrade Required",
+          message: "Upgrade to unlock more features and higher limits.",
           icon: Zap,
-          iconColor: 'text-blue-500',
+          iconColor: "text-blue-500",
         };
     }
   };
@@ -118,14 +212,18 @@ export default function UpgradeModal({
               <div className={`p-2 rounded-lg bg-slate-100`}>
                 <ReasonIcon className={`w-6 h-6 ${reasonInfo.iconColor}`} />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800">{reasonInfo.title}</h2>
+              <h2 className="text-2xl font-bold text-slate-800">
+                {reasonInfo.title}
+              </h2>
             </div>
             <p className="text-slate-600">{reasonInfo.message}</p>
-            
+
             {usageInfo && (
               <div className="mt-4 p-3 bg-slate-50 rounded-lg">
                 <p className="text-sm text-slate-600">
-                  <span className="font-medium">Current usage:</span> {usageInfo.used}/{usageInfo.limit} {featureType} calls this month
+                  <span className="font-medium">Current usage:</span>{" "}
+                  {usageInfo.used}/{usageInfo.limit} {featureType} calls this
+                  month
                 </p>
               </div>
             )}
@@ -153,17 +251,24 @@ export default function UpgradeModal({
 
                   <div className="flex items-center gap-2 mb-3">
                     <tier.icon className={`w-5 h-5 ${tier.iconColor}`} />
-                    <h4 className="text-lg font-bold text-slate-800">{tier.name}</h4>
+                    <h4 className="text-lg font-bold text-slate-800">
+                      {tier.name}
+                    </h4>
                   </div>
 
                   <div className="mb-4">
-                    <span className="text-3xl font-bold text-slate-800">${tier.price}</span>
+                    <span className="text-3xl font-bold text-slate-800">
+                      ₹{tier.price}
+                    </span>
                     <span className="text-slate-500 ml-1">/month</span>
                   </div>
 
                   <ul className="space-y-2 mb-4">
                     {tier.features.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-2 text-sm text-slate-700">
+                      <li
+                        key={index}
+                        className="flex items-center gap-2 text-sm text-slate-700"
+                      >
                         <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
                         {feature}
                       </li>
@@ -187,6 +292,14 @@ export default function UpgradeModal({
               Cancel anytime. Secure payment processing.
             </p>
           </div>
+          <AlertModal
+            isOpen={alertState.isOpen}
+            onClose={() =>
+              setAlertState((prev) => ({ ...prev, isOpen: false }))
+            }
+            type={alertState.type}
+            message={alertState.message}
+          />
         </motion.div>
       </div>
     </AnimatePresence>

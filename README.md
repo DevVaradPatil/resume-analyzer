@@ -189,8 +189,8 @@ nextjs_project/
 
 ### 5. **Subscription Management**
 - **Free Tier**: 1 analysis per feature/month
-- **Pro Tier** ($9.99/mo): 50 analyses per feature
-- **Executive Tier** ($24.99/mo): Unlimited analyses
+- **Pro Tier** (₹249/mo): 50 analyses per feature
+- **Executive Tier** (₹999/mo): Unlimited analyses
 - File size limits: 2MB (Free), 10MB (Pro), 25MB (Executive)
 
 ### 6. **Dashboard & Analytics**

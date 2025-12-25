@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Zap, Crown, Rocket } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
+import AlertModal from './AlertModal';
 
 const PRICING_TIERS = [
   {
@@ -30,7 +31,7 @@ const PRICING_TIERS = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 9.99,
+    price: 249,
     description: 'Best for active job seekers',
     icon: Rocket,
     iconColor: 'text-blue-600',
@@ -51,7 +52,7 @@ const PRICING_TIERS = [
   {
     id: 'executive',
     name: 'Executive',
-    price: 24.99,
+    price: 999,
     description: 'For professionals who demand the best',
     icon: Crown,
     iconColor: 'text-purple-600',
@@ -75,6 +76,7 @@ export default function PricingSection({ onSelectTier, currentTier: propCurrentT
   const { isSignedIn } = useUser();
   const [currentTier, setCurrentTier] = useState(propCurrentTier || 'free');
   const [isLoadingTier, setIsLoadingTier] = useState(true);
+  const [alertState, setAlertState] = useState({ isOpen: false, type: 'success', message: '' });
 
   useEffect(() => {
     // Fetch actual subscription tier if user is signed in
@@ -109,17 +111,90 @@ export default function PricingSection({ onSelectTier, currentTier: propCurrentT
     fetchCurrentTier();
   }, [isSignedIn]);
 
-  const handleSelectTier = (tierId) => {
+  const handleSelectTier = async (tierId) => {
     if (tierId === 'free') {
       // Free tier doesn't need payment
       if (onSelectTier) {
         onSelectTier(tierId);
       }
     } else {
-      // For paid tiers, log and call handler
-      console.log('Open Payment Gateway');
-      if (onSelectTier) {
-        onSelectTier(tierId);
+      // For paid tiers, initiate Razorpay checkout
+      try {
+        setIsLoadingTier(true);
+        
+        // 1. Create Order
+        const response = await fetch('/api/subscription/create-order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ tier: tierId }),
+        });
+
+        const data = await response.json();
+
+        if (data.status !== 'success') {
+          throw new Error(data.error || 'Failed to create order');
+        }
+
+        // 2. Initialize Razorpay
+        const options = {
+          key: data.keyId,
+          amount: data.amount,
+          currency: data.currency,
+          name: 'Resume Analyzer',
+          description: `${PRICING_TIERS.find(t => t.id === tierId).name} Subscription`,
+          order_id: data.orderId,
+          handler: async function (response) {
+            try {
+              // 3. Verify Payment
+              const verifyResponse = await fetch('/api/subscription/verify-payment', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  tier: tierId,
+                }),
+              });
+
+              const verifyData = await verifyResponse.json();
+
+              if (verifyData.status === 'success') {
+                setCurrentTier(tierId);
+                if (onSelectTier) {
+                  onSelectTier(tierId);
+                }
+                setAlertState({ isOpen: true, type: 'success', message: 'Subscription updated successfully!' });
+              } else {
+                throw new Error(verifyData.error || 'Payment verification failed');
+              }
+            } catch (error) {
+              console.error('Payment verification error:', error);
+              setAlertState({ isOpen: true, type: 'error', message: 'Payment verification failed. Please contact support.' });
+            }
+          },
+          prefill: {
+            // We can prefill user details if available
+            // name: user.fullName,
+            // email: user.primaryEmailAddress.emailAddress,
+          },
+          theme: {
+            color: '#2563eb',
+          },
+        };
+
+        const rzp1 = new window.Razorpay(options);
+        rzp1.open();
+
+      } catch (error) {
+        console.error('Payment initialization error:', error);
+        setAlertState({ isOpen: true, type: 'error', message: 'Failed to initialize payment. Please try again.' });
+      } finally {
+        setIsLoadingTier(false);
       }
     }
   };
@@ -175,7 +250,7 @@ export default function PricingSection({ onSelectTier, currentTier: propCurrentT
 
               <div className="mb-6">
                 <span className="text-4xl font-bold text-slate-800">
-                  ${tier.price}
+                  ₹{tier.price}
                 </span>
                 {tier.price > 0 && (
                   <span className="text-slate-500 ml-2">/month</span>
@@ -232,6 +307,13 @@ export default function PricingSection({ onSelectTier, currentTier: propCurrentT
           All plans include secure processing and data protection. Cancel anytime.
         </motion.p>
       </div>
+
+      <AlertModal 
+        isOpen={alertState.isOpen} 
+        onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))} 
+        type={alertState.type} 
+        message={alertState.message} 
+      />
     </section>
   );
 }

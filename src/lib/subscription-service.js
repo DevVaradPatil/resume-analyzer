@@ -23,7 +23,7 @@ export const SUBSCRIPTION_TIERS = {
   },
   pro: {
     name: 'Pro',
-    price: 15,
+    price: 249, // INR
     limits: {
       analyze: 50,
       analytics: 50,
@@ -42,7 +42,7 @@ export const SUBSCRIPTION_TIERS = {
   },
   executive: {
     name: 'Executive',
-    price: 49,
+    price: 999, // INR
     limits: {
       analyze: -1, // unlimited
       analytics: -1,
