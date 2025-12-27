@@ -140,12 +140,16 @@ export default function PricingModal({
               const verifyData = await verifyResponse.json();
 
               if (verifyData.status === 'success') {
-                if (onSelectTier) {
-                  onSelectTier(selectedTier);
-                }
-                onClose();
-                // Optionally refresh the page or update context
-                window.location.reload();
+                setAlertState({ isOpen: true, type: 'success', message: 'Subscription updated successfully!' });
+                
+                setTimeout(() => {
+                  if (onSelectTier) {
+                    onSelectTier(selectedTier);
+                  }
+                  onClose();
+                  // Optionally refresh the page or update context
+                  window.location.reload();
+                }, 2000);
               } else {
                 throw new Error(verifyData.error || 'Payment verification failed');
               }

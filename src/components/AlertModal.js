@@ -8,7 +8,7 @@ const AlertModal = ({ isOpen, onClose, type = "success", message }) => {
   const isSuccess = type === "success";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fadeIn">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 animate-fadeIn">
       <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 relative animate-slideIn">
         <button
           onClick={onClose}
