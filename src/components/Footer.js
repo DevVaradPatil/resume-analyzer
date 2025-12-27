@@ -26,6 +26,12 @@ export default function Footer() {
           </div>
 
           {/* Center: Developer (short) */}
+          <div className="text-xs text-slate-400 md:text-sm flex gap-4">
+            <a href="/privacy-policy" className="hover:text-blue-400 transition-colors">Privacy Policy</a>
+            <a href="/terms-of-service" className="hover:text-blue-400 transition-colors">Terms of Service</a>
+          </div>
+
+          {/* Center: Developer (short) */}
           <div className="text-xs text-slate-400 md:text-sm">
             <a
               href="https://www.linkedin.com/in/varad-patil-web-dev/"

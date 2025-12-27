@@ -39,7 +39,7 @@ export function getArticleBySlug(slug) {
 // Map article files to proper metadata
 export function getArticleMetadata(slug) {
   const articleMap = {
-    'article1': {
+    'ats-resume-keywords-2025': {
       title: '10 Essential Resume Keywords That Get You Noticed by ATS Systems',
       description: 'Discover the top 10 resume keywords that help you pass ATS filters and stand out to recruiters.',
       date: '2025-01-15',
@@ -47,7 +47,7 @@ export function getArticleMetadata(slug) {
       author: 'ResumeInsight',
       slug: 'ats-resume-keywords-2025'
     },
-    'article2': {
+    'remote-work-resume-optimization': {
       title: 'How to Optimize Your Resume for Remote Work Opportunities',
       description: 'Learn how to tailor your resume for remote jobs with essential keywords and skills.',
       date: '2025-01-10', 
@@ -55,7 +55,7 @@ export function getArticleMetadata(slug) {
       author: 'ResumeInsight',
       slug: 'remote-work-resume-optimization'
     },
-    'article3': {
+    'resume-formatting-guide-2025': {
       title: 'The Ultimate Guide to Resume Formatting in 2025',
       description: 'Master modern resume formatting that works with both ATS systems and human recruiters.',
       date: '2025-01-05',
@@ -63,7 +63,7 @@ export function getArticleMetadata(slug) {
       author: 'ResumeInsight', 
       slug: 'resume-formatting-guide-2025'
     },
-    'article4': {
+    'ai-resume-screening-guide': {
       title: 'How AI is Changing Resume Screening: What You Need to Know',
       description: 'Understand how AI-powered recruitment tools work and optimize your resume for machine learning algorithms.',
       date: '2024-12-28',
