@@ -23,7 +23,7 @@ export const SUBSCRIPTION_TIERS = {
   },
   pro: {
     name: 'Pro',
-    price: 249, // INR
+    price: 5, // INR (Testing Price)
     limits: {
       analyze: 50,
       analytics: 50,

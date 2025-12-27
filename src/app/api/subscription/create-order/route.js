@@ -12,6 +12,11 @@ export async function POST(request) {
     );
   }
 
+  // Safety check: Warn if using test keys in production
+  if (process.env.NODE_ENV === 'production' && process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test')) {
+    console.warn('WARNING: Using Razorpay TEST keys in PRODUCTION environment');
+  }
+
   const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET,
