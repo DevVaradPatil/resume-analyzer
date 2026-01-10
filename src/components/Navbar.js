@@ -31,7 +31,7 @@ const Navbar = () => {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
             <Image src="/logo.svg" alt="ResumeInsight Logo" width={32} height={32} />
-            <span className="text-xl font-bold text-slate-800">ResumeInsight</span>
+            <span className="text-xl font-bold md:flex hidden text-slate-800">ResumeInsight</span>
           </Link>
 
           {/* Navigation */}
@@ -77,13 +77,13 @@ const Navbar = () => {
             <SignedOut>
               <Link
                 href="/sign-in"
-                className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
+                className="px-4 py-2  text-slate-600 hover:text-slate-800 transition-colors"
               >
                 Sign In
               </Link>
               <Link
                 href="/sign-up"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2  bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Get Started
               </Link>
