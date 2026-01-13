@@ -137,6 +137,14 @@ export async function analyzeResumeWithGemini(resumeText, jobDescription) {
 }
 
 export async function analyzeResumeOverallWithGemini(resumeText) {
+  if (!process.env.GOOGLE_API_KEY) {
+    throw new Error("GOOGLE_API_KEY is not set");
+  }
+
+  // Initialize Gemini API
+  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
   const prompt = `
     You are an expert resume analyst and career advisor. Analyze the following resume to provide comprehensive overall insights about its quality, effectiveness, and areas for improvement.
     
@@ -318,6 +326,14 @@ export async function analyzeResumeOverallWithGemini(resumeText) {
 }
 
 export async function improveResumeSectionWithGemini(sectionType, originalText) {
+  if (!process.env.GOOGLE_API_KEY) {
+    throw new Error("GOOGLE_API_KEY is not set");
+  }
+
+  // Initialize Gemini API
+  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
   const sectionPrompts = {
     "summary": {
       "title": "Professional Summary",
