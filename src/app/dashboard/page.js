@@ -12,10 +12,13 @@ import {
   Sparkles,
   ArrowRight,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  ShieldAlert
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import SubscriptionDashboard from '../../components/SubscriptionDashboard';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
@@ -24,6 +27,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Deletion state. `pendingDelete` holds either a single analysis row or the
+  // sentinel { all: true } for the erase-everything flow.
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   const fetchDashboardData = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -95,6 +104,52 @@ export default function DashboardPage() {
       'section_improvement': 'Section Improvement',
     };
     return types[type] || type || 'Analysis';
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
+
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    const isDeleteAll = pendingDelete.all === true;
+    const endpoint = isDeleteAll
+      ? '/api/dashboard/data'
+      : `/api/dashboard/analysis/${pendingDelete.id}`;
+
+    try {
+      const response = await fetch(endpoint, { method: 'DELETE' });
+      const result = await response.json();
+
+      if (!response.ok || result.status !== 'success') {
+        throw new Error(result.error || result.message || 'Failed to delete');
+      }
+
+      // Update locally rather than refetching, so the row disappears at once.
+      if (isDeleteAll) {
+        setRecentAnalyses([]);
+        setStats((prev) => ({
+          ...prev,
+          totalResumes: 0,
+          totalAnalyses: 0,
+          averageScore: 0,
+          lastAnalysisAt: null,
+        }));
+      } else {
+        setRecentAnalyses((prev) => prev.filter((a) => a.id !== pendingDelete.id));
+        setStats((prev) =>
+          prev ? { ...prev, totalResumes: Math.max(0, (prev.totalResumes || 0) - 1) } : prev
+        );
+      }
+
+      setPendingDelete(null);
+    } catch (err) {
+      console.error('Delete failed:', err);
+      setDeleteError(err.message || 'Failed to delete. Please try again.');
+      setPendingDelete(null);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -293,25 +348,30 @@ export default function DashboardPage() {
             </div>
             <div className="divide-y divide-slate-100">
               {recentAnalyses.map((analysis) => (
-                <Link
+                /* The row is a container rather than one big <Link>: a delete
+                   button cannot be nested inside an anchor. */
+                <div
                   key={analysis.id}
-                  href={`/dashboard/analysis/${analysis.id}`}
-                  className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group"
+                  className="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors group gap-4"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                      <FileText className="w-5 h-5 text-slate-600 group-hover:text-blue-600 transition-colors" />
+                  <Link
+                    href={`/dashboard/analysis/${analysis.id}`}
+                    className="flex items-center gap-4 min-w-0 flex-1 cursor-pointer"
+                  >
+                    <div className="w-10 h-10 shrink-0 rounded-lg bg-slate-100 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                      <FileText className="w-5 h-5 text-slate-600 group-hover:text-blue-600 transition-colors" aria-hidden="true" />
                     </div>
-                    <div>
-                      <p className="font-medium text-slate-800 group-hover:text-blue-600 transition-colors">
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-800 group-hover:text-blue-600 transition-colors truncate">
                         {analysis.file_name || 'Untitled Resume'}
                       </p>
                       <p className="text-sm text-slate-500">
                         {formatDate(analysis.created_at)} • {formatAnalysisType(analysis.analysis_type)}
                       </p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4">
+                  </Link>
+
+                  <div className="flex items-center gap-4 shrink-0">
                     {analysis.score != null && (
                       <div className="text-right">
                         <p className={`text-xl font-bold ${
@@ -325,9 +385,25 @@ export default function DashboardPage() {
                         <p className="text-sm text-slate-500">Score</p>
                       </div>
                     )}
-                    <ArrowRight size={18} className="text-slate-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+
+                    <button
+                      type="button"
+                      onClick={() => { setDeleteError(null); setPendingDelete(analysis); }}
+                      aria-label={`Delete analysis of ${analysis.file_name || 'Untitled Resume'}`}
+                      className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                    >
+                      <Trash2 size={18} aria-hidden="true" />
+                    </button>
+
+                    <Link
+                      href={`/dashboard/analysis/${analysis.id}`}
+                      aria-label={`Open analysis of ${analysis.file_name || 'Untitled Resume'}`}
+                      className="text-slate-400 group-hover:text-blue-600 transition-colors"
+                    >
+                      <ArrowRight size={18} aria-hidden="true" />
+                    </Link>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           </div>
@@ -352,7 +428,61 @@ export default function DashboardPage() {
             </Link>
           </div>
         )}
+        {/* Your data — retention and erasure */}
+        <div className="mt-8 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="px-6 py-4 border-b border-slate-100">
+            <h2 className="text-lg font-semibold text-slate-800">Your data</h2>
+          </div>
+          <div className="p-6">
+            <p className="text-sm text-slate-600">
+              Your uploaded resumes and their analyses are stored so you can revisit
+              them from this dashboard. Analyses are automatically deleted 12 months
+              after they are created. You can remove any single analysis above, or
+              erase everything at once.
+            </p>
+
+            {deleteError && (
+              <p role="alert" className="flex items-start gap-2 text-sm text-red-700 mt-4">
+                <AlertCircle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+                <span>{deleteError}</span>
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={() => { setDeleteError(null); setPendingDelete({ all: true }); }}
+              disabled={recentAnalyses.length === 0 && !stats?.totalResumes}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            >
+              <ShieldAlert size={16} aria-hidden="true" />
+              Delete all my data
+            </button>
+
+            <p className="text-xs text-slate-500 mt-3">
+              This removes your stored resumes and analysis history. It does not delete
+              your account.
+            </p>
+          </div>
+        </div>
       </main>
+
+      <ConfirmDialog
+        isOpen={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={handleConfirmDelete}
+        isProcessing={isDeleting}
+        title={
+          pendingDelete?.all
+            ? 'Delete all your data?'
+            : 'Delete this analysis?'
+        }
+        message={
+          pendingDelete?.all
+            ? 'Every resume you have uploaded and all analysis history will be permanently deleted. This cannot be undone. Your account will remain active.'
+            : `"${pendingDelete?.file_name || 'This analysis'}" and its results will be permanently deleted. This cannot be undone.`
+        }
+        confirmLabel={pendingDelete?.all ? 'Delete everything' : 'Delete'}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { checkFeatureAccess } from '../../../../lib/subscription-service';
+import { checkFeatureAccess, checkFileSize } from '../../../../lib/subscription-service';
 import { getOrCreateUser } from '../../../../lib/user-sync';
 
 export async function POST(request) {
@@ -44,11 +44,39 @@ export async function POST(request) {
       });
     }
     
-    const accessCheck = await checkFeatureAccess(userId, featureType, fileSize || 0);
-    
+    // Size is checked first: it is the cheaper failure and the more specific
+    // message. checkFeatureAccess takes no size argument -- passing one here
+    // was silently discarded, so this pre-flight never actually caught an
+    // oversized file.
+    if (fileSize > 0) {
+      const sizeCheck = await checkFileSize(userId, fileSize);
+
+      if (!sizeCheck.allowed) {
+        return NextResponse.json({
+          status: 'success',
+          data: {
+            canUse: false,
+            allowed: false,
+            reason: 'FILE_TOO_LARGE',
+            message: sizeCheck.message,
+            tier: sizeCheck.tier,
+            maxSize: sizeCheck.maxSize,
+            currentSize: sizeCheck.currentSize,
+          },
+        });
+      }
+    }
+
+    const accessCheck = await checkFeatureAccess(userId, featureType);
+
     return NextResponse.json({
       status: 'success',
-      data: accessCheck,
+      data: {
+        ...accessCheck,
+        // The hook reads `canUse`; the routes read `allowed`. Return both so
+        // either consumer works.
+        canUse: accessCheck.allowed,
+      },
     });
   } catch (error) {
     console.error('Error checking feature access:', error);

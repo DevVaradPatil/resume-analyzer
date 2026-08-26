@@ -157,7 +157,8 @@ export default function PricingSection({ onSelectTier, currentTier: propCurrentT
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
                   razorpay_signature: response.razorpay_signature,
-                  tier: tierId,
+                  // Tier is intentionally NOT sent: the server reads it back
+                  // from the Razorpay order, which the client cannot forge.
                 }),
               });
 

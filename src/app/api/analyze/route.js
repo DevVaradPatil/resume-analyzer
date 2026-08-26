@@ -5,7 +5,7 @@ import { extractTextFromPdf } from '../../../lib/pdf-extractor';
 import { parseGeminiResponse } from '../../../lib/response-parser';
 import { saveResumeAnalysis, logAnalysis } from '../../../lib/resume-service';
 import { getOrCreateUser } from '../../../lib/user-sync';
-import { checkFeatureAccess, recordFeatureUsage, checkFileSize } from '../../../lib/subscription-service';
+import { consumeFeatureUsage, refundFeatureUsage, checkFileSize } from '../../../lib/subscription-service';
 
 // Add GET handler for testing
 export async function GET(request) {
@@ -104,26 +104,11 @@ export async function POST(request) {
       );
     }
 
-    // Check feature access (usage limits)
-    const accessCheck = await checkFeatureAccess(userId, 'analyze');
-    if (!accessCheck.allowed) {
-      return NextResponse.json(
-        { 
-          status: 'LIMIT_REACHED', 
-          error: accessCheck.message,
-          remaining: accessCheck.remaining,
-          limit: accessCheck.limit,
-          tier: accessCheck.tier,
-          resetDate: accessCheck.resetDate,
-        },
-        { status: 429 }
-      );
-    }
-
     // Get job description
     const jobDescription = formData.get('job_description') || '';
 
-    // Validate file
+    // Validate file. All cheap validation runs BEFORE quota is reserved, so a
+    // malformed request never costs the user a unit of their monthly limit.
     if (!resumeFile.name || resumeFile.name === '') {
       return NextResponse.json(
         { status: 'error', error: 'No file selected' },
@@ -139,18 +124,41 @@ export async function POST(request) {
       );
     }
 
+    // Reserve quota atomically. This both checks and increments in one
+    // statement, so parallel requests cannot all pass the same check before any
+    // of them increments. Every failure path below refunds the reservation.
+    const accessCheck = await consumeFeatureUsage(userId, 'analyze', {
+      fileName: resumeFile.name,
+      fileSize: fileSize,
+    });
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          status: 'LIMIT_REACHED',
+          error: accessCheck.message,
+          used: accessCheck.used,
+          remaining: accessCheck.remaining,
+          limit: accessCheck.limit,
+          tier: accessCheck.tier,
+          resetDate: accessCheck.resetDate,
+        },
+        { status: 429 }
+      );
+    }
+
     // Extract text from PDF
     let resumeText;
     try {
       console.log('Converting file to buffer...');
       const pdfBuffer = Buffer.from(fileBuffer);
       console.log('Buffer created, size:', pdfBuffer.length);
-      
+
       console.log('Extracting text from PDF...');
       resumeText = await extractTextFromPdf(pdfBuffer);
       console.log('Successfully extracted text from PDF, length:', resumeText.length);
     } catch (error) {
       console.error('PDF extraction error:', error);
+      await refundFeatureUsage(userId, 'analyze');
       return NextResponse.json(
         { status: 'error', error: `PDF extraction error: ${error.message}` },
         { status: 400 }
@@ -164,24 +172,27 @@ export async function POST(request) {
       
       console.log('Parsing Gemini response');
       const analysisResult = parseGeminiResponse(geminiResponse);
-      
+
+      // parseGeminiResponse never throws: on a malformed model reply it returns
+      // an object carrying status 'error'. Detect that before overwriting the
+      // status below, otherwise a parse failure is served as a success.
+      if (analysisResult?.status === 'error') {
+        console.error('Failed to parse analysis response');
+        await refundFeatureUsage(userId, 'analyze');
+        return NextResponse.json(
+          { status: 'error', error: 'Could not read the analysis result. Please try again.' },
+          { status: 502 }
+        );
+      }
+
       // Add status key to the response
       if (typeof analysisResult === 'object' && analysisResult !== null) {
         analysisResult.status = 'success';
-        
+
         const durationMs = Date.now() - startTime;
-        
-        // Record feature usage for subscription tracking
-        try {
-          await recordFeatureUsage(userId, 'analyze', {
-            fileName: resumeFile.name,
-            fileSize: fileSize,
-            score: analysisResult.score,
-          });
-        } catch (usageError) {
-          console.error('Error recording usage (non-blocking):', usageError);
-        }
-        
+
+        // Usage was already reserved before the analysis ran.
+
         // Save to database (async, don't await to not block response)
         try {
           // Save resume analysis
@@ -199,7 +210,6 @@ export async function POST(request) {
           await logAnalysis({
             clerkUserId: userId,
             resumeId: savedResume?.id,
-            rawInput: resumeText.substring(0, 5000), // Limit stored text
             jobDescription: jobDescription?.substring(0, 2000),
             modelUsed: 'gemini-2.5-flash',
             analysisType: 'job_match',
@@ -216,6 +226,7 @@ export async function POST(request) {
         return NextResponse.json(analysisResult);
       } else {
         console.error('Invalid response format from analysis');
+        await refundFeatureUsage(userId, 'analyze');
         return NextResponse.json(
           { status: 'error', error: 'Invalid response format from analysis' },
           { status: 500 }
@@ -223,12 +234,14 @@ export async function POST(request) {
       }
     } catch (error) {
       console.error('Analysis error:', error);
-      
+
+      // The analysis failed, so give the reserved quota back.
+      await refundFeatureUsage(userId, 'analyze');
+
       // Log failed analysis
       try {
         await logAnalysis({
           clerkUserId: userId,
-          rawInput: resumeText?.substring(0, 5000),
           jobDescription: jobDescription?.substring(0, 2000),
           modelUsed: 'gemini-2.5-flash',
           analysisType: 'job_match',

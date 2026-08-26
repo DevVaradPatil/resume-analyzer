@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Zap, Rocket, Crown, Sparkles } from 'lucide-react';
 import AlertModal from './AlertModal';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 const PRICING_TIERS = [
   {
@@ -72,6 +73,11 @@ export default function PricingModal({
   const [isLoading, setIsLoading] = useState(false);
   const [alertState, setAlertState] = useState({ isOpen: false, type: 'success', message: '' });
 
+  const titleId = useId();
+  // During onboarding the modal is not dismissible, so Escape must not close
+  // it -- passing undefined leaves focus trapped but disables the shortcut.
+  const dialogRef = useModalA11y(isOpen, isOnboarding ? undefined : onClose);
+
   if (!isOpen) return null;
 
   const handleContinue = async () => {
@@ -133,7 +139,8 @@ export default function PricingModal({
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
                   razorpay_signature: response.razorpay_signature,
-                  tier: selectedTier,
+                  // Tier is intentionally NOT sent: the server reads it back
+                  // from the Razorpay order, which the client cannot forge.
                 }),
               });
 
@@ -189,7 +196,12 @@ export default function PricingModal({
 
         {/* Modal */}
         <motion.div
-          className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          tabIndex={-1}
+          className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto outline-none"
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -198,9 +210,10 @@ export default function PricingModal({
           {!isOnboarding && (
             <button
               onClick={onClose}
+              aria-label="Close"
               className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors z-10"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           )}
 
@@ -211,7 +224,7 @@ export default function PricingModal({
                 <Sparkles className="w-8 h-8 text-blue-600" />
               </div>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">
+            <h2 id={titleId} className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">
               {isOnboarding ? 'Welcome to ResumeInsight!' : 'Choose Your Plan'}
             </h2>
             <p className="text-slate-600 max-w-lg mx-auto">

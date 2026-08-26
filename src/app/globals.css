@@ -1,15 +1,27 @@
 @import "tailwindcss";
 
+/*
+ * The UI is deliberately light-only: every component hardcodes light surfaces
+ * (bg-white, text-slate-*) and there is not a single `dark:` variant in the
+ * codebase.
+ *
+ * This previously carried the Next.js starter's `prefers-color-scheme: dark`
+ * block, which flipped only the body background and text colour to
+ * #0a0a0a/#ededed. The cards stayed white, so anything relying on the
+ * inherited foreground colour rendered near-white text on a white surface --
+ * unreadable for any visitor whose device was set to dark mode.
+ *
+ * Supporting dark mode properly means adding `dark:` variants across the
+ * component tree; until then the colour scheme is pinned to light so the page
+ * matches the components that are actually drawn on it.
+ */
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Tells the browser to render form controls, scrollbars and other UA widgets
+     with a light palette, so they do not arrive dark against white cards. */
+  color-scheme: light;
 }
 
 body {
@@ -23,11 +35,36 @@ body {
   animation: fadeIn 0.5s ease-in-out;
 }
 
+/* Used by AlertModal. Previously referenced but never defined, so the modal
+   appeared with no transition at all. */
+.animate-slideIn {
+  animation: slideIn 0.25s ease-out;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Respect users who have asked for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeIn,
+  .animate-slideIn {
+    animation: none;
   }
 }

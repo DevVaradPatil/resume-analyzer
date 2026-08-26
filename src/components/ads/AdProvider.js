@@ -43,9 +43,11 @@ export function AdProvider({ children }) {
         const response = await fetch('/api/subscription/status');
         
         if (response.ok) {
-          const data = await response.json();
-          const tier = data.subscription?.tier || 'free';
-          
+          const payload = await response.json();
+          // /api/subscription/status wraps its result as { status, data }, so
+          // the tier lives one level deeper than it looks.
+          const tier = payload.data?.subscription?.tier || 'free';
+
           // Show ads only to free tier users (if configured)
           const showAds = AD_CONFIG.showOnlyToFreeUsers 
             ? tier === 'free' 

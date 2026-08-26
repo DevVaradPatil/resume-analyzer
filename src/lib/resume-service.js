@@ -67,7 +67,6 @@ export async function saveResumeAnalysis({
  * @param {Object} params - The log parameters
  * @param {string} params.clerkUserId - The Clerk user ID
  * @param {string} params.resumeId - The resume ID (optional)
- * @param {string} params.rawInput - The original resume text
  * @param {string} params.jobDescription - Job description (optional)
  * @param {string} params.modelUsed - The AI model used
  * @param {number} params.tokensUsed - Number of tokens used (optional)
@@ -81,7 +80,6 @@ export async function saveResumeAnalysis({
 export async function logAnalysis({
   clerkUserId,
   resumeId = null,
-  rawInput = null,
   jobDescription = null,
   modelUsed = 'gemini-1.5-flash',
   tokensUsed = null,
@@ -105,7 +103,6 @@ export async function logAnalysis({
     .insert({
       user_id: user.id,
       resume_id: resumeId,
-      raw_input: rawInput,
       job_description: jobDescription,
       model_used: modelUsed,
       tokens_used: tokensUsed,
@@ -278,4 +275,34 @@ export async function getUserStats(clerkUserId) {
     averageScore,
     lastAnalysisAt: lastAnalysis?.created_at || null,
   };
+}
+
+/**
+ * Deletes every analysis record belonging to a user.
+ *
+ * Backs the "delete all my data" control. Runs as a single Postgres function
+ * (`delete_user_analysis_data`) so the whole erasure is one statement, and so
+ * the scoping is resolved from clerk_user_id inside the database rather than
+ * from anything the caller supplies.
+ *
+ * The Clerk account and the mirrored `users` row are deliberately left intact
+ * -- this erases the user's resumes, not their login. Deleting the account
+ * itself happens through Clerk, and the `user.deleted` webhook cascades it.
+ *
+ * @param {string} clerkUserId - The Clerk user ID
+ * @returns {Promise<number>} Count of resumes deleted
+ */
+export async function deleteAllUserAnalysisData(clerkUserId) {
+  const supabase = getSupabaseAdminClient();
+
+  const { data, error } = await supabase.rpc('delete_user_analysis_data', {
+    p_clerk_user_id: clerkUserId,
+  });
+
+  if (error) {
+    console.error('Error deleting user analysis data:', error);
+    throw error;
+  }
+
+  return typeof data === 'number' ? data : 0;
 }

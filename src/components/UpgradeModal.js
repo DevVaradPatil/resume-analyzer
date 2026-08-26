@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, AlertTriangle, Check, Rocket, Crown } from "lucide-react";
 import AlertModal from "./AlertModal";
+import { useModalA11y } from "../hooks/useModalA11y";
 
 const UPGRADE_TIERS = [
   {
@@ -42,6 +43,14 @@ const UPGRADE_TIERS = [
   },
 ];
 
+// Human-readable names for the internal feature keys, so copy reads
+// "Resume Analytics credits" rather than "analytics credits".
+const FEATURE_LABELS = {
+  analyze: "Job Match Analysis",
+  analytics: "Resume Analytics",
+  improve: "Section Improvement",
+};
+
 export default function UpgradeModal({
   isOpen,
   onClose,
@@ -55,6 +64,10 @@ export default function UpgradeModal({
     type: "success",
     message: "",
   });
+
+  const titleId = useId();
+  const descId = useId();
+  const dialogRef = useModalA11y(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -100,7 +113,8 @@ export default function UpgradeModal({
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
                   razorpay_signature: response.razorpay_signature,
-                  tier: tierId,
+                  // Tier is intentionally NOT sent: the server reads it back
+                  // from the Razorpay order, which the client cannot forge.
                 }),
               }
             );
@@ -150,22 +164,46 @@ export default function UpgradeModal({
     }
   };
 
+  const formatBytes = (bytes) => {
+    if (typeof bytes !== "number" || Number.isNaN(bytes)) return null;
+    const mb = bytes / (1024 * 1024);
+    // Whole numbers for the tier limits, one decimal for the user's file.
+    return `${Number.isInteger(mb) ? mb : mb.toFixed(1)}MB`;
+  };
+
   const getReasonMessage = () => {
     switch (reason) {
-      case "LIMIT_REACHED":
+      case "LIMIT_REACHED": {
+        const limit = usageInfo?.limit;
         return {
           title: "Monthly Limit Reached",
-          message: `You've used all your free ${featureType} credits for this month.`,
+          message:
+            typeof limit === "number" && limit > 0
+              ? `You've used all ${limit} of your ${FEATURE_LABELS[featureType] || featureType} credits for this month.`
+              : `You've used all your ${FEATURE_LABELS[featureType] || featureType} credits for this month.`,
           icon: AlertTriangle,
           iconColor: "text-amber-500",
         };
-      case "FILE_TOO_LARGE":
+      }
+      case "FILE_TOO_LARGE": {
+        const max = formatBytes(usageInfo?.maxSize);
+        const current = formatBytes(usageInfo?.currentSize);
+        const tierName = usageInfo?.tier
+          ? usageInfo.tier.charAt(0).toUpperCase() + usageInfo.tier.slice(1)
+          : null;
+
         return {
           title: "File Size Exceeded",
-          message: "Your file exceeds the 2MB limit for the Free tier.",
+          message:
+            max && current && tierName
+              ? `Your file is ${current}, which exceeds the ${max} limit on the ${tierName} plan.`
+              : max
+              ? `Your file exceeds the ${max} limit on your current plan.`
+              : "Your file exceeds the size limit on your current plan.",
           icon: AlertTriangle,
           iconColor: "text-amber-500",
         };
+      }
       default:
         return {
           title: "Upgrade Required",
@@ -193,7 +231,13 @@ export default function UpgradeModal({
 
         {/* Modal */}
         <motion.div
-          className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={descId}
+          tabIndex={-1}
+          className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto outline-none"
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -201,32 +245,36 @@ export default function UpgradeModal({
           {/* Close button */}
           <button
             onClick={onClose}
+            aria-label="Close"
             className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
 
           {/* Header */}
           <div className="p-6 border-b border-slate-200">
             <div className="flex items-center gap-3 mb-2">
-              <div className={`p-2 rounded-lg bg-slate-100`}>
+              <div className={`p-2 rounded-lg bg-slate-100`} aria-hidden="true">
                 <ReasonIcon className={`w-6 h-6 ${reasonInfo.iconColor}`} />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800">
+              <h2 id={titleId} className="text-2xl font-bold text-slate-800">
                 {reasonInfo.title}
               </h2>
             </div>
-            <p className="text-slate-600">{reasonInfo.message}</p>
+            <p id={descId} className="text-slate-600">{reasonInfo.message}</p>
 
-            {usageInfo && (
-              <div className="mt-4 p-3 bg-slate-50 rounded-lg">
-                <p className="text-sm text-slate-600">
-                  <span className="font-medium">Current usage:</span>{" "}
-                  {usageInfo.used}/{usageInfo.limit} {featureType} calls this
-                  month
-                </p>
-              </div>
-            )}
+            {reason === "LIMIT_REACHED" &&
+              typeof usageInfo?.used === "number" &&
+              typeof usageInfo?.limit === "number" &&
+              usageInfo.limit > 0 && (
+                <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                  <p className="text-sm text-slate-600">
+                    <span className="font-medium">Current usage:</span>{" "}
+                    {usageInfo.used}/{usageInfo.limit}{" "}
+                    {FEATURE_LABELS[featureType] || featureType} runs this month
+                  </p>
+                </div>
+              )}
           </div>
 
           {/* Upgrade Options */}

@@ -73,7 +73,52 @@ export default function PrivacyPolicy() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-xl font-semibold text-slate-800 mb-4">6. Contact Us</h2>
+          <h2 className="text-xl font-semibold text-slate-800 mb-4">6. Data Retention</h2>
+          <p className="text-slate-600 mb-4">
+            We keep your uploaded resumes and their analysis results so that you can
+            revisit them from your dashboard. We retain them for <strong>12 months</strong> from
+            the date the analysis was created, after which they are deleted automatically.
+          </p>
+          <p className="text-slate-600 mb-4">
+            We keep limited technical logs of each analysis (which AI model was used, how
+            long it took, and whether it succeeded) for the same period. These logs do not
+            contain the text of your resume.
+          </p>
+          <p className="text-slate-600 mb-4">
+            Records of payments are retained for longer where we are required to keep them
+            for tax and accounting purposes.
+          </p>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold text-slate-800 mb-4">7. Your Rights and Deleting Your Data</h2>
+          <p className="text-slate-600 mb-4">
+            You can delete your data at any time, without contacting us:
+          </p>
+          <ul className="list-disc pl-6 text-slate-600 space-y-2 mb-4">
+            <li>
+              <strong>Delete a single analysis:</strong> use the delete control next to any
+              entry under Recent Analyses on your dashboard.
+            </li>
+            <li>
+              <strong>Delete everything:</strong> use “Delete all my data” in the Your data
+              section of your dashboard. This permanently removes all stored resumes and
+              analysis history. Your account remains active.
+            </li>
+            <li>
+              <strong>Delete your account:</strong> deleting your account also deletes all
+              associated resumes and analyses.
+            </li>
+          </ul>
+          <p className="text-slate-600 mb-4">
+            Deletions are immediate and cannot be undone. Depending on where you live, you
+            may also have rights to access, correct, or export your personal data, and to
+            object to or restrict its processing. Contact us to exercise any of these.
+          </p>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold text-slate-800 mb-4">8. Contact Us</h2>
           <p className="text-slate-600 mb-4">
             If you have any questions about this privacy policy or our privacy practices, please contact us.
           </p>

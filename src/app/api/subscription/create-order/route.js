@@ -41,11 +41,24 @@ export async function POST(request) {
     }
 
     const tierConfig = SUBSCRIPTION_TIERS[tier];
-    
+
     // Amount in paise (1 INR = 100 paise)
     const amount = Math.round(tierConfig.price * 100);
-    
-    // Create Razorpay order
+
+    // Free (or any zero-priced) tier is not a purchase; granting it through the
+    // payment flow would produce a paid-for-nothing order that verify-payment
+    // would then have to reason about.
+    if (amount <= 0) {
+      return NextResponse.json(
+        { status: 'error', error: 'This plan does not require payment' },
+        { status: 400 }
+      );
+    }
+
+    // Create Razorpay order.
+    // `notes` is the server's record of what this order is for. verify-payment
+    // reads the tier and owner back from here rather than trusting the client,
+    // so these two fields are load-bearing for access control.
     const options = {
       amount: amount,
       currency: 'INR',

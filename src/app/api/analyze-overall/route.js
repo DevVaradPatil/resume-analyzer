@@ -5,7 +5,7 @@ import { extractTextFromPdf } from '../../../lib/pdf-extractor';
 import { parseGeminiResponse } from '../../../lib/response-parser';
 import { saveResumeAnalysis, logAnalysis } from '../../../lib/resume-service';
 import { getOrCreateUser } from '../../../lib/user-sync';
-import { checkFeatureAccess, recordFeatureUsage, checkFileSize } from '../../../lib/subscription-service';
+import { consumeFeatureUsage, refundFeatureUsage, checkFileSize } from '../../../lib/subscription-service';
 
 // Add GET handler for testing
 export async function GET(request) {
@@ -77,13 +77,19 @@ export async function POST(request) {
       );
     }
 
-    // Check feature access (usage limits)
-    const accessCheck = await checkFeatureAccess(userId, 'analytics');
+    // Reserve quota atomically. Checks and increments in a single statement so
+    // parallel requests cannot all pass the same check. Every failure path
+    // below refunds the reservation.
+    const accessCheck = await consumeFeatureUsage(userId, 'analytics', {
+      fileName: resumeFile.name,
+      fileSize: fileSize,
+    });
     if (!accessCheck.allowed) {
       return NextResponse.json(
         {
           status: 'LIMIT_REACHED',
           error: accessCheck.message,
+          used: accessCheck.used,
           remaining: accessCheck.remaining,
           limit: accessCheck.limit,
           tier: accessCheck.tier,
@@ -100,6 +106,7 @@ export async function POST(request) {
       console.log('Successfully extracted text from PDF');
     } catch (error) {
       console.error('PDF extraction error:', error);
+      await refundFeatureUsage(userId, 'analytics');
       return NextResponse.json(
         { status: 'error', error: `PDF extraction error: ${error.message}` },
         { status: 400 }
@@ -113,23 +120,26 @@ export async function POST(request) {
       
       console.log('Parsing Gemini response');
       const analysisResult = parseGeminiResponse(geminiResponse);
-      
+
+      // parseGeminiResponse never throws: on a malformed model reply it returns
+      // an object carrying status 'error'. Detect that before overwriting the
+      // status below, otherwise a parse failure is served as a success.
+      if (analysisResult?.status === 'error') {
+        console.error('Failed to parse overall analysis response');
+        await refundFeatureUsage(userId, 'analytics');
+        return NextResponse.json(
+          { status: 'error', error: 'Could not read the analysis result. Please try again.' },
+          { status: 502 }
+        );
+      }
+
       // Add status key to the response
       if (typeof analysisResult === 'object' && analysisResult !== null) {
         analysisResult.status = 'success';
-        
+
         const durationMs = Date.now() - startTime;
-        
-        // Record feature usage for subscription tracking
-        try {
-          await recordFeatureUsage(userId, 'analytics', {
-            fileName: resumeFile.name,
-            fileSize: fileSize,
-            score: analysisResult.overall_score,
-          });
-        } catch (usageError) {
-          console.error('Error recording usage (non-blocking):', usageError);
-        }
+
+        // Usage was already reserved before the analysis ran.
         
         // Save to database
         try {
@@ -147,7 +157,6 @@ export async function POST(request) {
           await logAnalysis({
             clerkUserId: userId,
             resumeId: savedResume?.id,
-            rawInput: resumeText.substring(0, 5000),
             modelUsed: 'gemini-2.5-flash',
             analysisType: 'overall',
             success: true,
@@ -162,6 +171,7 @@ export async function POST(request) {
         return NextResponse.json(analysisResult);
       } else {
         console.error('Invalid response format from overall analysis');
+        await refundFeatureUsage(userId, 'analytics');
         return NextResponse.json(
           { status: 'error', error: 'Invalid response format from overall analysis' },
           { status: 500 }
@@ -169,12 +179,14 @@ export async function POST(request) {
       }
     } catch (error) {
       console.error('Overall analysis error:', error);
-      
+
+      // The analysis failed, so give the reserved quota back.
+      await refundFeatureUsage(userId, 'analytics');
+
       // Log failed analysis
       try {
         await logAnalysis({
           clerkUserId: userId,
-          rawInput: resumeText?.substring(0, 5000),
           modelUsed: 'gemini-2.5-flash',
           analysisType: 'overall',
           success: false,
