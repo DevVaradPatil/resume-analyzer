@@ -1,30 +1,11 @@
-import { getAllArticleSlugs, getArticleBySlug, getArticleMetadata } from '../../../lib/blog';
-
-// Generate static params for all blog posts
-export async function generateStaticParams() {
-  return [
-    { slug: 'ats-resume-keywords-2025' },
-    { slug: 'remote-work-resume-optimization' },
-    { slug: 'resume-formatting-guide-2025' },
-    { slug: 'ai-resume-screening-guide' }
-  ];
-}
+import { getArticleMetadata } from '../../../lib/blog';
 
 // Generate metadata for each blog post
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   
-  // Find the article file that corresponds to this slug
-  const articleMap = {
-    'ats-resume-keywords-2025': 'article1',
-    'remote-work-resume-optimization': 'article2',
-    'resume-formatting-guide-2025': 'article3',
-    'ai-resume-screening-guide': 'article4'
-  };
-  
-  const articleFile = articleMap[slug];
-  const metadata = getArticleMetadata(articleFile);
-  
+  const metadata = getArticleMetadata(slug);
+
   if (!metadata) {
     return {
       title: 'Article Not Found',
@@ -32,6 +13,8 @@ export async function generateMetadata({ params }) {
   }
 
   return {
+    // Explicit suffix: blog/layout.js sets a plain title, which resets the
+    // root template for everything below it.
     title: `${metadata.title} | ResumeInsight`,
     description: metadata.description,
     keywords: [
@@ -45,7 +28,7 @@ export async function generateMetadata({ params }) {
       title: metadata.title,
       description: metadata.description,
       url: `https://resumeinsight.vercel.app/blog/${slug}`,
-      images: ['/assets/landing.png'],
+      images: ['/assets/product/og.png'],
     },
     alternates: {
       canonical: `/blog/${slug}`,

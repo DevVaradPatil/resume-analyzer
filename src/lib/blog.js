@@ -25,9 +25,9 @@ export function getArticleBySlug(slug) {
   
   const fileContents = fs.readFileSync(fullPath, 'utf8');
   const { data, content } = matter(fileContents);
-  
-  // Convert markdown to HTML
-  const htmlContent = marked(content);
+
+  // The page renders the title itself, so drop the markdown's leading H1.
+  const htmlContent = marked(content.replace(/^\s*# [^\n]*\n/, ''));
   
   return {
     slug,

@@ -70,11 +70,10 @@ export function AdUnit({
     }
 
     try {
-      // Push the ad to AdSense
-      if (typeof window !== 'undefined' && window.adsbygoogle) {
-        window.adsbygoogle.push({});
-        setIsLoaded(true);
-      }
+      // Queue the ad. The script now loads alongside the first ad unit, so it
+      // may not have run yet; AdSense drains this array when it does.
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+      setIsLoaded(true);
     } catch (error) {
       console.error('AdSense error:', error);
     }
@@ -196,7 +195,7 @@ export function FooterBannerAd({ className = '' }) {
   if (!AD_CONFIG.placements.footer.enabled) return null;
   
   return (
-    <div className={`w-full flex justify-center py-4 bg-slate-50 ${className}`}>
+    <div className={`w-full flex justify-center py-4 ${className}`}>
       <AdUnit 
         slot={AD_SLOTS.FOOTER_BANNER}
         format="horizontal"

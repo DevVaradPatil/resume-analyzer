@@ -1,81 +1,47 @@
-export const faqData = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "How does the AI resume analyzer work?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Our AI resume analyzer uses advanced natural language processing to evaluate your resume against job requirements. It analyzes content, format, keywords, and ATS compatibility to provide personalized feedback and improvement suggestions."
-      }
-    },
-    {
-      "@type": "Question", 
-      "name": "Is my resume data secure and private?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes, we take privacy seriously. Your resume data is processed securely and is not stored on our servers after analysis. We use enterprise-grade security measures to protect your information."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "What file formats are supported?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Currently, we support PDF resume uploads. This ensures consistent formatting and accurate text extraction for the best analysis results."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How accurate is the ATS compatibility score?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Our ATS compatibility analysis is based on industry standards and testing with major ATS systems. While results may vary between different ATS platforms, our analysis provides a reliable indicator of how well your resume will perform in automated screening."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Can I analyze my resume multiple times?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes, you can analyze your resume as many times as you want. This allows you to test different versions and see how improvements affect your score."
-      }
-    }
-  ]
-};
+import { SUBSCRIPTION_TIERS, PAID_PERIOD_DAYS } from './tiers';
 
-export const faqItems = [
-  {
-    question: "How does the AI resume analyzer work?",
-    answer: "Our AI resume analyzer uses advanced natural language processing to evaluate your resume against job requirements. It analyzes content, format, keywords, and ATS compatibility to provide personalized feedback and improvement suggestions."
-  },
-  {
-    question: "Is my resume data secure and private?",
-    answer: "Yes, we take privacy seriously. Your resume data is processed securely and is not stored on our servers after analysis. We use enterprise-grade security measures to protect your information."
-  },
-  {
-    question: "What file formats are supported?",
-    answer: "Currently, we support PDF resume uploads. This ensures consistent formatting and accurate text extraction for the best analysis results."
-  },
-  {
-    question: "How accurate is the ATS compatibility score?",
-    answer: "Our ATS compatibility analysis is based on industry standards and testing with major ATS systems. While results may vary between different ATS platforms, our analysis provides a reliable indicator of how well your resume will perform in automated screening."
-  },
-  {
-    question: "Can I analyze my resume multiple times?",
-    answer: "Yes, you can analyze your resume as many times as you want. This allows you to test different versions and see how improvements affect your score."
-  },
-  {
-    question: "Do I need to provide a job description?",
-    answer: "While providing a job description is optional, it significantly improves the analysis quality. The AI can provide more targeted feedback when it understands the specific role you're applying for."
-  },
-  {
-    question: "How long does the analysis take?",
-    answer: "Most resume analyses complete within 30-60 seconds, depending on the length and complexity of your resume."
-  },
-  {
-    question: "What makes this different from other resume checkers?",
-    answer: "Our AI uses the latest language models to provide contextual, personalized feedback rather than just keyword matching. We focus on both ATS optimization and human readability."
-  }
-];
+/**
+ * Homepage FAQ, in schema.org FAQPage shape so the same object renders the
+ * accordion and the JSON-LD. Every answer must stay true to the code
+ * (DESIGN.md section 11); limits and file sizes are read from tiers.js.
+ */
+
+const MB = 1024 * 1024;
+const { free, pro, executive } = SUBSCRIPTION_TIERS;
+
+const question = (name, text) => ({
+  '@type': 'Question',
+  name,
+  acceptedAnswer: { '@type': 'Answer', text },
+});
+
+export const faqData = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    question(
+      'How does the analysis work?',
+      "You upload a PDF, and for a job match you paste the job description. We extract the text and send it to Google's Gemini model with instructions to score and review it. The report you see is that review, laid out section by section."
+    ),
+    question(
+      'What happens to my resume?',
+      'Your resume text and its report are stored so you can reopen reports from your dashboard. You can delete one report or all of them at any time, and every report is deleted automatically 12 months after it was created.'
+    ),
+    question(
+      'What files can I upload?',
+      `PDF only. The Free plan accepts files up to ${free.limits.maxFileSize / MB}MB, Pro up to ${pro.limits.maxFileSize / MB}MB and Executive up to ${executive.limits.maxFileSize / MB}MB. A scanned image has no text to read, so export your resume from your editor as a text PDF.`
+    ),
+    question(
+      'Does a paid plan renew automatically?',
+      `No. Pro and Executive are one-time payments for ${PAID_PERIOD_DAYS} days, and you are never charged again unless you buy another plan. Buying the same plan while it is active adds ${PAID_PERIOD_DAYS} days to it. When it ends, your account returns to the Free plan.`
+    ),
+    question(
+      'How accurate is the ATS score?',
+      "It is an estimate, not a test against a real applicant tracking system. It reflects common screening practice: standard headings, a readable layout, and keywords from the posting. Treat it as a guide to what to fix, not a guarantee."
+    ),
+    question(
+      'How many analyses can I run?',
+      `Free includes ${free.limits.analyze} run of each tool per month. Pro includes ${pro.limits.analyze} of each per month. Executive has no limit. Counts reset on the first of each month, and a run that fails does not count.`
+    ),
+  ],
+};

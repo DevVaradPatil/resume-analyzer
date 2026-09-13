@@ -1,4 +1,4 @@
-import { Poppins } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from '@vercel/analytics/react';
 import { ClerkProvider } from '@clerk/nextjs';
@@ -6,13 +6,19 @@ import { structuredData, organizationData } from '../lib/structured-data';
 import Footer from '../components/Footer';
 import SubscriptionProvider from '../components/SubscriptionProvider';
 import { AdProvider } from '../components/ads';
-import { ADSENSE_PUBLISHER_ID, AD_CONFIG } from '../lib/adsense-config';
 import Script from 'next/script';
 
-const poppins = Poppins({
+// Geist is a variable font, so no weight list is needed.
+const geist = Geist({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-poppins",
+  variable: "--font-geist",
+  display: "swap",
+});
+
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+  display: "swap",
 });
 
 export const metadata = {
@@ -21,7 +27,7 @@ export const metadata = {
     default: 'Resume Analyzer - AI-Powered Resume Enhancement | ResumeInsight',
     template: '%s | ResumeInsight',
   },
-  description: "Transform your job application process with precision AI analysis. Get personalized insights, close skill gaps, and stand out to recruiters with an optimized resume that gets results.",
+  description: "Check your resume against a job description. Get a match score, the keywords you are missing, ATS feedback, and rewrites you can paste in.",
   keywords: [
     'resume analyzer',
     'AI resume checker',
@@ -42,12 +48,12 @@ export const metadata = {
   },
   openGraph: {
     title: 'Resume Analyzer - AI-Powered Resume Enhancement | ResumeInsight',
-    description: 'Transform your job application process with precision AI analysis. Get personalized insights, close skill gaps, and stand out to recruiters.',
+    description: 'Get a match score, the keywords you are missing, ATS feedback, and rewrites you can paste in.',
     url: 'https://resumeinsight.vercel.app',
     siteName: 'ResumeInsight',
     images: [
       {
-        url: '/assets/landing.png',
+        url: '/assets/product/og.png',
         width: 1200,
         height: 630,
         alt: 'ResumeInsight - AI-Powered Resume Analyzer',
@@ -59,8 +65,8 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Resume Analyzer - AI-Powered Resume Enhancement',
-    description: 'Transform your job application process with precision AI analysis.',
-    images: ['/assets/landing.png'],
+    description: 'A match score, missing keywords, and rewrites for your resume.',
+    images: ['/assets/product/og.png'],
   },
   robots: {
     index: true,
@@ -93,16 +99,11 @@ export default function RootLayout({ children }) {
       afterSignInUrl="/resume-analysis"
       afterSignUpUrl="/resume-analysis"
     >
-      <html lang="en">
+      {/* Font variables live on <html>: --font-sans is declared on :root as
+          var(--font-geist), and would resolve to nothing if the variable were
+          only defined further down the tree on <body>. */}
+      <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
         <head>
-          {/* Google AdSense Script - Only load if ads are enabled */}
-          {AD_CONFIG.enabled && (
-            <script
-              async
-              src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}`}
-              crossOrigin="anonymous"
-            />
-          )}
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{
@@ -121,7 +122,7 @@ export default function RootLayout({ children }) {
           />
         </head>
         <body
-          className={`${poppins.variable} font-sans antialiased min-h-screen flex flex-col`}
+          className="font-sans antialiased min-h-screen flex flex-col"
         >
           <SubscriptionProvider>
             <AdProvider>

@@ -4,199 +4,143 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-import { LayoutDashboard, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Image from "next/image";
+import { useModalA11y } from "../hooks/useModalA11y";
+
+const NAV_LINKS = [
+  { href: "/resume-analysis", label: "Job match" },
+  { href: "/analytics", label: "Analytics" },
+  { href: "/section-improvement", label: "Improve" },
+  { href: "/#pricing", label: "Pricing" },
+  { href: "/blog", label: "Blog" },
+];
+
+const USER_BUTTON_APPEARANCE = { elements: { avatarBox: "w-8 h-8" } };
 
 const Navbar = () => {
   const pathname = usePathname();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const navLinks = [
-    { href: "/resume-analysis", label: "Analyze" },
-    { href: "/analytics", label: "Analytics" },
-    { href: "/section-improvement", label: "Improve" },
-    { href: "/blog", label: "Blog" },
-  ];
+  // The mobile menu behaves as a modal: Escape, focus trap, focus restore and
+  // scroll lock all come from the shared hook.
+  const menuRef = useModalA11y(isMenuOpen, () => setIsMenuOpen(false));
 
-  const isActive = (href) => {
-    if (href === "/blog") {
-      return pathname === "/blog" || pathname.startsWith("/blog/");
-    }
-    return pathname === href;
-  };
-
-  // Close mobile menu on route change
   useEffect(() => {
-    setIsMobileMenuOpen(false);
+    setIsMenuOpen(false);
   }, [pathname]);
 
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isMobileMenuOpen]);
+  const isActive = (href) => {
+    if (href.startsWith("/#")) return false;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  const linkClass = (href) =>
+    `transition-colors ${isActive(href) ? "text-ink" : "text-ink-3 hover:text-ink"}`;
 
   return (
     <>
-      <header className="bg-white/95 backdrop-blur-lg border-b border-slate-200/60 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between py-4">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 z-50">
-              <Image src="/logo.svg" alt="ResumeInsight Logo" width={32} height={32} />
-              <span className="text-xl font-bold hidden sm:flex text-slate-800">ResumeInsight</span>
-            </Link>
+      <header className="sticky top-0 z-40 h-16 bg-canvas border-b border-line">
+        <div className="max-w-[1200px] h-full mx-auto px-4 sm:px-6 flex items-center justify-between gap-6">
+          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+            <Image src="/logo.svg" alt="" width={28} height={28} />
+            <span className="text-[17px] font-semibold tracking-tight text-ink">ResumeInsight</span>
+          </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-6">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`transition-colors font-medium ${
-                    isActive(link.href)
-                      ? "text-blue-600"
-                      : "text-slate-600 hover:text-slate-800"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Desktop Auth Buttons */}
-            <div className="hidden md:flex items-center gap-3">
-              <SignedIn>
-                <Link
-                  href="/dashboard"
-                  className={`flex items-center gap-2 px-4 py-2 transition-colors ${
-                    pathname === "/dashboard" || pathname.startsWith("/dashboard/")
-                      ? "text-blue-600"
-                      : "text-slate-600 hover:text-slate-800"
-                  }`}
-                >
-                  <LayoutDashboard size={18} />
-                  Dashboard
-                </Link>
-                <UserButton 
-                  afterSignOutUrl="/"
-                  appearance={{
-                    elements: {
-                      avatarBox: "w-9 h-9"
-                    }
-                  }}
-                />
-              </SignedIn>
-              <SignedOut>
-                <Link
-                  href="/sign-in"
-                  className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/sign-up"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Get Started
-                </Link>
-              </SignedOut>
-            </div>
-
-            {/* Mobile Menu Button & User Button */}
-            <div className="flex md:hidden items-center gap-3">
-              <SignedIn>
-                <UserButton 
-                  afterSignOutUrl="/"
-                  appearance={{
-                    elements: {
-                      avatarBox: "w-9 h-9"
-                    }
-                  }}
-                />
-              </SignedIn>
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 text-slate-600 hover:text-slate-800 transition-colors z-50"
-                aria-label="Toggle menu"
+          <nav aria-label="Main" className="hidden lg:flex items-center gap-7 text-[15px] font-medium">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={isActive(link.href) ? "page" : undefined}
+                className={linkClass(link.href)}
               >
-                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-            </div>
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="hidden lg:flex items-center gap-2">
+            <SignedIn>
+              <Link
+                href="/dashboard"
+                aria-current={isActive("/dashboard") ? "page" : undefined}
+                className="btn btn-ghost"
+              >
+                Dashboard
+              </Link>
+              <UserButton afterSignOutUrl="/" appearance={USER_BUTTON_APPEARANCE} />
+            </SignedIn>
+            <SignedOut>
+              <Link href="/sign-in" className="btn btn-ghost">Sign in</Link>
+              <Link href="/sign-up" className="btn btn-primary">Start free</Link>
+            </SignedOut>
+          </div>
+
+          <div className="flex lg:hidden items-center gap-2">
+            <SignedOut>
+              <Link href="/sign-up" className="btn btn-primary h-9 px-3.5 text-sm">Start free</Link>
+            </SignedOut>
+            <SignedIn>
+              <UserButton afterSignOutUrl="/" appearance={USER_BUTTON_APPEARANCE} />
+            </SignedIn>
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen((open) => !open)}
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-menu"
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              className="btn btn-ghost h-9 w-9 px-0"
+            >
+              {isMenuOpen ? <X size={20} strokeWidth={1.75} aria-hidden="true" /> : <Menu size={20} strokeWidth={1.75} aria-hidden="true" />}
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
+      {/* Rendered only while open, so its links are not tabbable when hidden. */}
+      {isMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
+          id="mobile-menu"
+          ref={menuRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu"
+          tabIndex={-1}
+          className="lg:hidden fixed inset-x-0 top-16 bottom-0 z-40 bg-canvas overflow-y-auto outline-none animate-fadeIn"
+        >
+          <nav aria-label="Mobile" className="flex flex-col px-4 py-4">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setIsMenuOpen(false)}
+                aria-current={isActive(link.href) ? "page" : undefined}
+                className={`py-3.5 text-lg font-medium border-b border-line ${linkClass(link.href)}`}
+              >
+                {link.label}
+              </Link>
+            ))}
+
+            <SignedIn>
+              <Link
+                href="/dashboard"
+                aria-current={isActive("/dashboard") ? "page" : undefined}
+                className={`py-3.5 text-lg font-medium border-b border-line ${linkClass("/dashboard")}`}
+              >
+                Dashboard
+              </Link>
+            </SignedIn>
+
+            <SignedOut>
+              <div className="grid gap-3 pt-6">
+                <Link href="/sign-up" className="btn btn-primary btn-lg w-full">Start free</Link>
+                <Link href="/sign-in" className="btn btn-secondary btn-lg w-full">Sign in</Link>
+              </div>
+            </SignedOut>
+          </nav>
+        </div>
       )}
-
-      {/* Mobile Menu Drawer */}
-      <div
-        className={`fixed top-[73px] right-0 h-[calc(100vh-73px)] w-64 bg-white shadow-2xl z-40 md:hidden transform transition-transform duration-300 ease-in-out ${
-          isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <nav className="flex flex-col p-6 gap-2">
-          {/* Navigation Links */}
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`px-4 py-3 rounded-lg transition-colors font-medium ${
-                isActive(link.href)
-                  ? "bg-blue-50 text-blue-600"
-                  : "text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
-
-          {/* Dashboard Link (Signed In) */}
-          <SignedIn>
-            <Link
-              href="/dashboard"
-              className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors font-medium ${
-                pathname === "/dashboard" || pathname.startsWith("/dashboard/")
-                  ? "bg-blue-50 text-blue-600"
-                  : "text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              <LayoutDashboard size={18} />
-              Dashboard
-            </Link>
-          </SignedIn>
-
-          {/* Auth Buttons (Signed Out) */}
-          <SignedOut>
-            <div className="pt-4 border-t border-slate-200 mt-4 flex flex-col gap-2">
-              <Link
-                href="/sign-in"
-                className="px-4 py-3 text-center text-slate-600 hover:bg-slate-50 rounded-lg transition-colors font-medium"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/sign-up"
-                className="px-4 py-3 text-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                Get Started
-              </Link>
-            </div>
-          </SignedOut>
-        </nav>
-      </div>
     </>
   );
 };

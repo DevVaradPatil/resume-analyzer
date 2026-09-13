@@ -1,66 +1,9 @@
 import { getSupabaseAdminClient } from './supabaseClient';
+import { SUBSCRIPTION_TIERS, PAID_PERIOD_DAYS, getTierFeatures } from './tiers';
 
-/**
- * Subscription tier definitions
- */
-export const SUBSCRIPTION_TIERS = {
-  free: {
-    name: 'Free',
-    price: 0,
-    limits: {
-      analyze: 1,      // Job match analysis
-      analytics: 1,    // Overall resume analytics
-      improve: 1,      // Section improvement
-      maxFileSize: 2 * 1024 * 1024, // 2MB
-    },
-    features: [
-      '1 Job Match Analysis/month',
-      '1 Resume Analytics/month',
-      '1 Section Improvement/month',
-      'Max 2MB file size',
-      'Basic ATS scoring',
-    ],
-  },
-  pro: {
-    name: 'Pro',
-    price: 249, // INR
-    limits: {
-      analyze: 50,
-      analytics: 50,
-      improve: 50,
-      maxFileSize: 10 * 1024 * 1024, // 10MB
-    },
-    features: [
-      '50 Job Match Analyses/month',
-      '50 Resume Analytics/month',
-      '50 Section Improvements/month',
-      'Max 10MB file size',
-      'Advanced ATS optimization',
-      'Priority support',
-      'Detailed industry insights',
-    ],
-  },
-  executive: {
-    name: 'Executive',
-    price: 999, // INR
-    limits: {
-      analyze: -1, // unlimited
-      analytics: -1,
-      improve: -1,
-      maxFileSize: 25 * 1024 * 1024, // 25MB
-    },
-    features: [
-      'Unlimited Job Match Analyses',
-      'Unlimited Resume Analytics',
-      'Unlimited Section Improvements',
-      'Max 25MB file size',
-      'Premium ATS optimization',
-      '24/7 Priority support',
-      'Executive insights & benchmarks',
-      'Custom recommendations',
-    ],
-  },
-};
+// Re-exported so existing server imports keep working. The data lives in
+// tiers.js so client components can share it without pulling in Supabase.
+export { SUBSCRIPTION_TIERS, PAID_PERIOD_DAYS };
 
 /**
  * Get current usage period string (YYYY-MM format)
@@ -72,10 +15,6 @@ function getCurrentUsagePeriod() {
   return `${year}-${month}`;
 }
 
-/**
- * Number of days granted per paid billing period.
- */
-export const PAID_PERIOD_DAYS = 30;
 
 /**
  * Downgrades a lapsed paid subscription to the free tier.
@@ -670,6 +609,6 @@ export async function getUsageStats(clerkUserId) {
     limits: status.limits,
     remaining: status.remaining,
     resetDate: status.resetDate,
-    features: status.tierConfig.features,
+    features: getTierFeatures(status.subscription.tier),
   };
 }

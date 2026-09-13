@@ -209,7 +209,7 @@ nextjs_project/
 - **Styling**: Tailwind CSS 4.0
 - **Animations**: Framer Motion
 - **Icons**: Lucide React
-- **Fonts**: Google Fonts (Poppins)
+- **Fonts**: Geist and Geist Mono via `next/font`
 
 ### Backend
 - **API Routes**: Next.js API Routes

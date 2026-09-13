@@ -338,12 +338,12 @@ export async function improveResumeSectionWithGemini(sectionType, originalText) 
     "summary": {
       "title": "Professional Summary",
       "context": "This is a professional summary/objective section that should be compelling, concise, and tailored to showcase the candidate's value proposition.",
-      "focus": "Make it more impactful, quantify achievements, highlight key strengths, and ensure it's ATS-friendly."
+      "focus": "Make it more impactful, highlight key strengths, mark where achievements need real figures, and ensure it's ATS-friendly."
     },
     "experience": {
       "title": "Work Experience",
       "context": "This is a work experience section that should showcase achievements, responsibilities, and impact in previous roles.",
-      "focus": "Use action verbs, quantify achievements with metrics, show progression, and highlight relevant accomplishments."
+      "focus": "Use action verbs, mark where achievements need real metrics, show progression, and highlight relevant accomplishments."
     },
     "skills": {
       "title": "Skills Section",
@@ -358,7 +358,7 @@ export async function improveResumeSectionWithGemini(sectionType, originalText) 
     "projects": {
       "title": "Projects",
       "context": "This is a projects section that should showcase personal or professional projects demonstrating skills and experience.",
-      "focus": "Highlight technologies used, quantify impact, show problem-solving abilities, and demonstrate relevant skills."
+      "focus": "Highlight technologies used, mark where impact needs real figures, show problem-solving abilities, and demonstrate relevant skills."
     }
   };
 
@@ -427,12 +427,21 @@ export async function improveResumeSectionWithGemini(sectionType, originalText) 
 
     Guidelines for improvement:
     1. Make the text more impactful and results-oriented
-    2. Use strong action verbs and quantify achievements where possible
+    2. Use strong action verbs
     3. Optimize for ATS (Applicant Tracking Systems) with relevant keywords
     4. Ensure the tone is professional and appropriate
     5. Make it concise but comprehensive
     6. Focus on value proposition and unique selling points
     7. Use industry-standard terminology and best practices
+
+    Truthfulness rules. These override every guideline above. The candidate will paste this text into a real resume.
+    - Never add a fact that is not in the ORIGINAL TEXT: no numbers, percentages, amounts, volumes, team sizes, durations, outcomes, awards, employers, tools or technologies the original does not state.
+    - Never describe scale or results the original does not state (for example "millions of transactions", "high-volume", "reduced errors", "significantly improved") unless those words or figures are in the original.
+    - Where a number would strengthen a line, write a square-bracket placeholder instead, such as "[X%]", "[N transactions a month]" or "[time saved]", and say in that change's "reason" that the candidate must replace it with their real figure or delete it.
+    - Keywords and suggested_keywords may name skills from the original, or skills the candidate could add if they genuinely have them; never state in improved_text or alternatives that the candidate has a skill the original does not mention.
+    - Never inflate the candidate's role. If the original says "helped", "worked on", "participated" or "contributed", do not rewrite it as "led", "spearheaded", "owned", "architected" or "designed". Choose a stronger verb that claims the same level of responsibility, such as "helped migrate" becoming "co-led the migration of" only if the original says co-led, otherwise "contributed to the migration of" or "migrated, with the team,".
+    - Never add qualitative outcomes the original does not state, such as "ensuring stability", "improving reliability", "more scalable" or "significantly". If an outcome would help, use a placeholder like "[result, e.g. fewer failed runs]".
+    - These rules apply equally to improved_text, key_improvements and every alternative.
 
     Ensure ALL keys are present even if values are empty arrays or default values. DO NOT include any explanation or text outside the JSON structure.
     `;

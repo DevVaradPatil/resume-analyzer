@@ -1,64 +1,57 @@
 /**
- * Score thresholds and the colours derived from them.
+ * Score bands and the colours derived from them (DESIGN.md 4.1 and 5.6).
  *
- * These bands were duplicated verbatim in the analytics and resume-analysis
- * pages. Keeping them here means a change to what counts as a "good" score
- * cannot drift between the two.
+ * Three bands, not four: 80+ positive, 40 to 79 caution, under 40 critical.
+ * Every place that colours or labels a score reads from here, so what counts
+ * as a "good" score cannot drift between the report, the dashboard and the
+ * saved-report page.
  */
 
-export const SCORE_BANDS = [
-  { min: 80, label: 'Excellent' },
-  { min: 60, label: 'Good' },
-  { min: 40, label: 'Needs Work' },
-  { min: 0, label: 'Poor' },
-];
+const LABELS = {
+  // The job match score compares a resume against one posting.
+  match: { positive: 'Strong match', caution: 'Partial match', critical: 'Weak match' },
+  // Every other score rates the resume on its own.
+  quality: { positive: 'Strong', caution: 'Needs work', critical: 'At risk' },
+};
 
 /**
- * Solid fill colour for bars and dots.
- *
  * @param {number} score - 0-100
- * @returns {string} Tailwind background class
+ * @returns {'positive'|'caution'|'critical'}
  */
+export function getScoreBand(score) {
+  if (score >= 80) return 'positive';
+  if (score >= 40) return 'caution';
+  return 'critical';
+}
+
+// Full class names spelled out so Tailwind's scanner can see them.
+const FILL = { positive: 'bg-positive', caution: 'bg-caution', critical: 'bg-critical' };
+const TEXT = { positive: 'text-positive', caution: 'text-caution', critical: 'text-critical' };
+
+/** Solid fill for bars. */
 export function getScoreColor(score) {
-  if (score >= 80) return 'bg-green-500';
-  if (score >= 60) return 'bg-yellow-500';
-  if (score >= 40) return 'bg-orange-500';
-  return 'bg-red-500';
+  return FILL[getScoreBand(score)];
 }
 
-/**
- * Tinted surface + border, for panels that carry a score.
- *
- * @param {number} score - 0-100
- * @returns {string} Tailwind background and border classes
- */
-export function getScoreBgColor(score) {
-  if (score >= 80) return 'bg-green-50 border-green-100';
-  if (score >= 60) return 'bg-yellow-50 border-yellow-100';
-  if (score >= 40) return 'bg-orange-50 border-orange-100';
-  return 'bg-red-50 border-red-100';
-}
-
-/**
- * Text colour matching the band, for score numerals.
- *
- * @param {number} score - 0-100
- * @returns {string} Tailwind text class
- */
+/** Text colour for numerals and band labels. */
 export function getScoreTextColor(score) {
-  if (score >= 80) return 'text-green-700';
-  if (score >= 60) return 'text-yellow-700';
-  if (score >= 40) return 'text-orange-700';
-  return 'text-red-700';
+  return TEXT[getScoreBand(score)];
 }
 
 /**
- * Plain-language label for a score, used as the accessible description so a
- * screen reader announces "72 out of 100, Good" rather than a bare number.
+ * Plain-language band label, also used for the accessible description so a
+ * screen reader announces "72 out of 100, Partial match".
  *
  * @param {number} score - 0-100
- * @returns {string}
+ * @param {'match'|'quality'} kind
  */
-export function getScoreLabel(score) {
-  return SCORE_BANDS.find((band) => score >= band.min)?.label ?? 'Poor';
+export function getScoreLabel(score, kind = 'quality') {
+  return (LABELS[kind] || LABELS.quality)[getScoreBand(score)];
+}
+
+/** Clamps model output to a 0-100 integer; anything non-numeric becomes null. */
+export function toScore(value) {
+  const n = typeof value === 'string' ? Number(value) : value;
+  if (typeof n !== 'number' || Number.isNaN(n)) return null;
+  return Math.round(Math.max(0, Math.min(100, n)));
 }

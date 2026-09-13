@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useId, useRef, useState } from "react";
-import { Upload, FileText, CheckCircle, Loader2, Rocket, AlertCircle, X } from "lucide-react";
+import { UploadCloud, FileText, Loader2, AlertCircle, X } from "lucide-react";
 import { useSubscription } from "./SubscriptionProvider";
 import { validateResumeFile, formatBytes } from "../lib/file-validation";
 
@@ -85,168 +85,138 @@ function FileUpload({ onAnalyze, hideJobDescription = false }) {
     acceptFile(e.dataTransfer.files?.[0]);
   };
 
-  const dropZoneBorder = fileError
-    ? "border-red-400 bg-red-50"
-    : dragOver
-    ? "border-blue-400 bg-blue-50"
-    : file
-    ? "border-green-400 bg-green-50"
-    : "border-slate-300 hover:border-slate-400";
-
   const isSubmitDisabled =
     !file ||
     !!fileError ||
     (!hideJobDescription && !jobDesc.trim()) ||
     isAnalyzing;
 
+  // Idle and drag-over show the full drop zone. Once a file is chosen (or
+  // rejected) it collapses to a single row, so the empty target does not keep
+  // competing with the rest of the form.
+  const zoneState = fileError ? "error" : file ? "file" : dragOver ? "drag" : "idle";
+
+  const zoneClass = {
+    idle: "min-h-40 border-dashed border-line-strong bg-surface hover:border-ink-3",
+    drag: "min-h-40 border-solid border-accent bg-accent-soft",
+    file: "min-h-16 border-solid border-line bg-surface",
+    error: "min-h-16 border-solid border-critical bg-surface",
+  }[zoneState];
+
+  const sizeHint = maxFileSize
+    ? `PDF up to ${formatBytes(maxFileSize)}${tierName ? ` on ${tierName}` : ""}.`
+    : "PDF only.";
+
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-      {/* Card Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-          <Upload size={28} aria-hidden="true" />
-          Upload &amp; Analyze
-        </h2>
-        <p className="text-blue-100 mt-2">
-          {hideJobDescription
-            ? "Upload your resume to get comprehensive analytics and insights"
-            : "Upload your resume and job description to get AI-powered insights"}
-        </p>
-      </div>
+    <form onSubmit={handleSubmit} className="panel p-6 space-y-6 sm:p-8">
+      <div className="space-y-2">
+        <label htmlFor={fileInputId} className="block text-[13px] font-medium text-ink">
+          Resume
+        </label>
 
-      {/* Form Content */}
-      <form onSubmit={handleSubmit} className="p-8 space-y-8">
-        {/* File Upload Section */}
-        <div className="space-y-3">
-          <label
-            htmlFor={fileInputId}
-            className="block text-sm font-semibold text-slate-700 mb-3"
-          >
-            Resume Upload
-          </label>
+        <div
+          className={`relative flex rounded-panel border-[1.5px] transition-colors ${zoneClass}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <input
+            id={fileInputId}
+            ref={inputRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            aria-describedby={fileError ? fileErrorId : fileHelpId}
+            aria-invalid={fileError ? "true" : undefined}
+            onChange={(e) => acceptFile(e.target.files?.[0])}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
 
-          <div
-            className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200 ${dropZoneBorder}`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <input
-              id={fileInputId}
-              ref={inputRef}
-              type="file"
-              accept="application/pdf,.pdf"
-              aria-describedby={fileError ? fileErrorId : fileHelpId}
-              aria-invalid={fileError ? "true" : undefined}
-              onChange={(e) => acceptFile(e.target.files?.[0])}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            <div className="flex flex-col items-center space-y-3">
-              <div
-                className={`w-16 h-16 rounded-full flex items-center justify-center ${
-                  fileError ? "bg-red-100" : file ? "bg-green-100" : "bg-slate-100"
-                }`}
-              >
-                {fileError ? (
-                  <AlertCircle className="text-red-600" size={32} aria-hidden="true" />
-                ) : file ? (
-                  <CheckCircle className="text-green-600" size={32} aria-hidden="true" />
-                ) : (
-                  <FileText className="text-slate-500" size={32} aria-hidden="true" />
-                )}
-              </div>
-              <div>
-                <p className="text-lg font-medium text-slate-700 break-all">
-                  {file ? file.name : "Drop your PDF resume here"}
-                </p>
-                <p id={fileHelpId} className="text-sm text-slate-500 mt-1">
-                  {file
-                    ? `${formatBytes(file.size)} · ready for analysis`
-                    : maxFileSize
-                    ? `or click to browse — PDF, up to ${formatBytes(maxFileSize)}`
-                    : "or click to browse — PDF only"}
-                </p>
-              </div>
+          {zoneState === "idle" || zoneState === "drag" ? (
+            <div className="m-auto flex flex-col items-center px-6 py-8 text-center">
+              <UploadCloud
+                size={24}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className={zoneState === "drag" ? "text-accent" : "text-ink-3"}
+              />
+              <p className="mt-3 font-medium text-ink">Drop your resume PDF</p>
+              <p id={fileHelpId} className="mt-1 text-sm text-ink-3">
+                or click to browse. {sizeHint}
+              </p>
             </div>
-
-            {/* Sits above the overlaid file input so it stays clickable. */}
-            {file && !isAnalyzing && (
-              <button
-                type="button"
-                onClick={clearFile}
-                aria-label={`Remove ${file.name}`}
-                className="absolute top-3 right-3 z-10 p-1.5 text-slate-400 hover:text-slate-700 hover:bg-white/80 rounded-lg transition-colors"
-              >
-                <X size={18} aria-hidden="true" />
-              </button>
-            )}
-          </div>
-
-          {fileError && (
-            <p
-              id={fileErrorId}
-              role="alert"
-              className="flex items-start gap-2 text-sm text-red-700"
-            >
-              <AlertCircle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
-              <span>{fileError}</span>
-            </p>
+          ) : (
+            <div className="flex w-full items-center gap-3 px-4 py-3">
+              <FileText
+                size={20}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className={`shrink-0 ${fileError ? "text-critical" : "text-ink-3"}`}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-ink">
+                  {file ? file.name : "Choose a different file"}
+                </p>
+                <p id={fileHelpId} className="text-[13px] text-ink-3">
+                  {file ? `${formatBytes(file.size)}, ready to analyze` : sizeHint}
+                </p>
+              </div>
+              {file && !isAnalyzing && (
+                /* Sits above the overlaid file input so it stays clickable. */
+                <button
+                  type="button"
+                  onClick={clearFile}
+                  aria-label={`Remove ${file.name}`}
+                  className="btn btn-ghost relative z-10 h-8 w-8 shrink-0 px-0"
+                >
+                  <X size={16} strokeWidth={1.75} aria-hidden="true" />
+                </button>
+              )}
+            </div>
           )}
         </div>
 
-        {/* Job Description Section - Only show if not hidden */}
-        {!hideJobDescription && (
-          <div className="space-y-3">
-            <label
-              htmlFor={jobDescId}
-              className="block text-sm font-semibold text-slate-700"
-            >
-              Job Description
-            </label>
-            <div className="relative">
-              <textarea
-                id={jobDescId}
-                rows="8"
-                value={jobDesc}
-                onChange={(e) => setJobDesc(e.target.value)}
-                /* A real placeholder. This used to be an absolutely positioned
-                   div sitting on top of the textarea, which overlapped the text
-                   as soon as the user started typing near it. */
-                placeholder={
-                  "Paste the job description here...\n\nExample:\n• 3+ years of experience in React development\n• Strong knowledge of JavaScript, HTML, CSS\n• Experience with REST APIs\n• Bachelor's degree in Computer Science"
-                }
-                className="w-full border border-slate-300 rounded-xl p-4 pb-8 text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
-              />
-              <div
-                className="absolute bottom-3 right-3 text-xs text-slate-400 pointer-events-none"
-                aria-hidden="true"
-              >
-                {jobDesc.length} characters
-              </div>
-            </div>
-          </div>
+        {fileError && (
+          <p id={fileErrorId} role="alert" className="flex items-start gap-2 text-sm text-critical">
+            <AlertCircle size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <span>{fileError}</span>
+          </p>
         )}
+      </div>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isSubmitDisabled}
-          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-4 px-8 rounded-xl shadow-lg hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] disabled:hover:scale-100"
-        >
-          {isAnalyzing ? (
-            <div className="flex items-center justify-center gap-3">
-              <Loader2 className="animate-spin" size={20} aria-hidden="true" />
-              Analyzing Resume...
-            </div>
-          ) : (
-            <div className="flex items-center justify-center gap-3">
-              <Rocket size={20} aria-hidden="true" />
-              Analyze Resume
-            </div>
-          )}
-        </button>
-      </form>
-    </div>
+      {!hideJobDescription && (
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between gap-4">
+            <label htmlFor={jobDescId} className="block text-[13px] font-medium text-ink">
+              Job description
+            </label>
+            <span className="text-[13px] text-ink-3 tabular-nums" aria-hidden="true">
+              {jobDesc.length} characters
+            </span>
+          </div>
+          <textarea
+            id={jobDescId}
+            rows={8}
+            value={jobDesc}
+            onChange={(e) => setJobDesc(e.target.value)}
+            placeholder={
+              "Paste the full job post here.\n\nFor example:\n3+ years of React development\nStrong JavaScript, HTML and CSS\nExperience with REST APIs"
+            }
+            className="field resize-y"
+          />
+        </div>
+      )}
+
+      <button type="submit" disabled={isSubmitDisabled} className="btn btn-primary btn-lg w-full">
+        {isAnalyzing ? (
+          <>
+            <Loader2 size={18} strokeWidth={1.75} className="motion-safe:animate-spin" aria-hidden="true" />
+            Analyzing
+          </>
+        ) : (
+          "Analyze resume"
+        )}
+      </button>
+    </form>
   );
 }
 

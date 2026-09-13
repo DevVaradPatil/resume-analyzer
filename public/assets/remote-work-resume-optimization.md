@@ -10,7 +10,7 @@ Here’s a step-by-step guide on how to **optimize your resume for remote work o
 If you’ve worked remotely before, showcase it clearly. Hiring managers want proof that you can stay productive outside a traditional office.  
 
 **Example:**  
-*“Software Engineer | Remote | 2022–2024 — Led cross-time-zone team meetings and delivered projects ahead of schedule.”*  
+*“Software Engineer | Remote | 2022-2024: Led cross-time-zone team meetings and delivered projects ahead of schedule.”*  
 
 ---
 
@@ -59,12 +59,12 @@ Remote employers want proof of efficiency. Use data-driven achievements to back 
 Instead of a fixed location, add phrases like *“Open to Remote Opportunities”* or *“Remote | Hybrid | Onsite.”* This signals flexibility right away.  
 
 **Example:**  
-*Varad Patil — Web Developer | Open to Remote Opportunities*  
+*Varad Patil | Web Developer | Open to Remote Opportunities*  
 
 ---
 
 ## 8. **Focus on Soft Skills for Remote Success**  
-Key soft skills include *adaptability, initiative, problem-solving, and collaboration.* Don’t just list them—demonstrate them in your achievements.  
+Key soft skills include *adaptability, initiative, problem-solving, and collaboration.* Don’t just list them. Demonstrate them in your achievements.  
 
 **Example:**  
 *“Adapted quickly to remote-first workflows, ensuring 100% project delivery on time.”*  
@@ -90,12 +90,12 @@ Create a short section dedicated to remote work strengths.
 
 ---
 
-## ✅ Final Tips  
+## Final Tips  
 - Keep your resume concise but keyword-rich.  
 - Back up every remote skill with real achievements.  
 - Update your LinkedIn profile to reflect your readiness for remote opportunities.  
 
 ---
 
-### 🚀 Key Takeaway  
-A resume optimized for remote work isn’t just about skills—it’s about showing employers that you can succeed in a distributed, digital-first environment. By tailoring your resume with the right keywords, tools, and achievements, you’ll boost your chances of landing your next remote opportunity.  
+### Key Takeaway  
+A resume optimized for remote work isn’t just about skills. It’s about showing employers that you can succeed in a distributed, digital-first environment. By tailoring your resume with the right keywords, tools, and achievements, you’ll boost your chances of landing your next remote opportunity.  

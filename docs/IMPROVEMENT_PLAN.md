@@ -179,7 +179,7 @@ Two bugs in the extraction were caught by rendering the components against mock 
 
 ## P5 — Found while verifying (not yet addressed)
 
-### 14. Result components crash the page when the model omits a key — `TODO`
+### 14. Result components crash the page when the model omits a key — `DONE`
 
 Nearly every list in the result components maps without a guard, e.g. `path.recommendations.map(...)` inside `gap_analysis.learning_paths`, and `data.summary_insights.top_strengths.map(...)`. If Gemini returns an object that is missing one nested key — which the prompt requests but cannot guarantee — the whole results tree throws and the user sees a blank page rather than a partial result.
 
@@ -189,6 +189,8 @@ Two options, not mutually exclusive:
 
 - An error boundary around the results tree, so a malformed field degrades to a message instead of a white screen. Cheapest, protects all three pages at once.
 - Guard the nested maps (`(x ?? []).map(...)`), so a missing field drops one section rather than the page.
+
+**Done (design phase 3):** the second option. The primitives in `src/components/results/index.js` (`asArray`, `asObject`, `toScore` in `lib/score.js`) type-check every value before rendering, and each report section is omitted when its data is missing or malformed. Checked by rendering the job match report against deliberately wrong types (string score, string where an array belongs, `null` metric groups, a number where a list belongs).
 
 ---
 

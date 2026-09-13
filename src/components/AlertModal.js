@@ -1,10 +1,9 @@
 "use client";
 
 import { useId } from "react";
-import { CheckCircle, XCircle, X } from "lucide-react";
+import { CheckCircle2, AlertCircle, X } from "lucide-react";
 import { useModalA11y } from "../hooks/useModalA11y";
 
-// Alert Modal Component
 const AlertModal = ({ isOpen, onClose, type = "success", message }) => {
   const titleId = useId();
   const messageId = useId();
@@ -13,10 +12,11 @@ const AlertModal = ({ isOpen, onClose, type = "success", message }) => {
   if (!isOpen) return null;
 
   const isSuccess = type === "success";
+  const Icon = isSuccess ? CheckCircle2 : AlertCircle;
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 animate-fadeIn"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 scrim animate-fadeIn"
       onClick={onClose}
     >
       <div
@@ -27,44 +27,33 @@ const AlertModal = ({ isOpen, onClose, type = "success", message }) => {
         aria-describedby={messageId}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 relative animate-slideIn outline-none"
+        className="panel relative w-full max-w-[420px] p-6 shadow-overlay outline-none animate-slideIn"
       >
         <button
+          type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+          className="btn btn-ghost absolute top-3 right-3 h-8 w-8 px-0"
         >
-          <X size={20} aria-hidden="true" />
+          <X size={18} strokeWidth={1.75} aria-hidden="true" />
         </button>
 
-        <div className="flex flex-col items-center text-center">
-          <div
-            className={`mb-4 ${isSuccess ? "text-green-500" : "text-red-500"}`}
+        <h2 id={titleId} className="flex items-center gap-2 pr-8 text-lg font-semibold text-ink">
+          <Icon
+            size={20}
+            strokeWidth={1.75}
             aria-hidden="true"
-          >
-            {isSuccess ? (
-              <CheckCircle size={56} strokeWidth={1.5} />
-            ) : (
-              <XCircle size={56} strokeWidth={1.5} />
-            )}
-          </div>
+            className={isSuccess ? "text-positive" : "text-critical"}
+          />
+          {isSuccess ? "Done" : "Something went wrong"}
+        </h2>
 
-          <h3 id={titleId} className="text-xl font-semibold mb-2 text-gray-900">
-            {isSuccess ? "Success!" : "Error"}
-          </h3>
+        <p id={messageId} className="mt-2 text-ink-2">
+          {message}
+        </p>
 
-          <p id={messageId} className="text-gray-600 mb-6">
-            {message}
-          </p>
-
-          <button
-            onClick={onClose}
-            className={`px-6 py-2.5 rounded-lg font-medium transition-colors ${
-              isSuccess
-                ? "bg-green-500 hover:bg-green-600 text-white"
-                : "bg-red-500 hover:bg-red-600 text-white"
-            }`}
-          >
+        <div className="mt-6 flex justify-end">
+          <button type="button" onClick={onClose} className="btn btn-primary">
             Close
           </button>
         </div>

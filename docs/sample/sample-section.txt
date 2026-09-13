@@ -1,0 +1,3 @@
+- Worked on the payments service that handles UPI and card transactions
+- Responsible for writing APIs in Node.js and maintaining PostgreSQL databases
+- Helped move the reconciliation job from cron scripts to a queue based worker

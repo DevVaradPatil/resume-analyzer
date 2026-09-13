@@ -1,416 +1,210 @@
 "use client";
 
 import React from "react";
-import { AlertTriangle, Bot, Check, CheckCircle, Copy, FileText, Lightbulb, Sparkles, Star } from "lucide-react";
-import { AdWrapper, ResultsAd } from "../ads";
+import {
+  asArray,
+  asObject,
+  BulletList,
+  CopyButton,
+  KeywordList,
+  ReportLayout,
+  ReportPanel,
+  ScoreBar,
+  ScoreDisplay,
+  SubHeading,
+} from "./index";
 
-/**
- * Renders markdown-style bold (**text**) as <strong>.
- *
- * Moved here from the page component along with the markup that uses it -- it
- * was the one closure dependency of this block, and the extraction initially
- * left it behind, which crashed the component at render time.
- */
-function parseMarkdownText(text) {
-  if (typeof text !== 'string') return text;
+const PLACEHOLDER = /(\[[^\]\n]+\])/g;
 
-  return text.split(/(\*\*.*?\*\*)/g).map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return (
-        <strong key={index} className="font-semibold text-slate-900">
-          {part.slice(2, -2)}
-        </strong>
-      );
-    }
-    return part;
-  });
+/** Marks "[X%]"-style placeholders the model leaves for the user's real figures. */
+function markPlaceholders(text, keyPrefix) {
+  return text.split(PLACEHOLDER).map((part, index) =>
+    index % 2 === 1 ? (
+      <mark key={`${keyPrefix}-${index}`} className="rounded-[4px] bg-caution/10 px-1 text-caution">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
 }
 
 /**
- * Result rendering for the section-improvement feature.
- *
- * Extracted from the page component, which had grown to ~690 lines with all of
- * this inline. Unlike the other two result renderers this one is not pure -- it
- * needs the copy-to-clipboard state -- so that is passed in rather than closed
- * over.
+ * Renders markdown-style bold (**text**) as <strong>, and highlights
+ * placeholders. The model uses both in the rewrite and the feedback lines.
+ */
+function parseMarkdownText(text) {
+  if (typeof text !== "string") return text;
+
+  return text.split(/(\*\*.*?\*\*)/g).map((part, index) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={index} className="font-semibold text-ink">
+        {markPlaceholders(part.slice(2, -2), index)}
+      </strong>
+    ) : (
+      <React.Fragment key={index}>{markPlaceholders(part, index)}</React.Fragment>
+    )
+  );
+}
+
+/** Copy the rewrite without the ** markers the screen turns into bold. */
+const plain = (text) => (typeof text === "string" ? text.replace(/\*\*(.*?)\*\*/g, "$1") : "");
+
+/**
+ * Section improvement report. Reads the keys defined by the prompt template in
+ * improveResumeSectionWithGemini; that template is the contract.
  *
  * @param {Object} props
  * @param {Object} props.data - Parsed improvement result from the API
- * @param {string} props.copiedText - Which block was last copied, for the tick
- * @param {Function} props.onCopy - (text, type) => void
+ * @param {string} [props.original] - The text the user submitted
  */
-export default function SectionImprovementResults({ data, copiedText, onCopy }) {
-  if (!data) return null;
+export default function SectionImprovementResults({ data, original }) {
+  if (!asObject(data)) return null;
+
+  const analysis = asObject(data.analysis) || {};
+  const changes = asArray(analysis.improvements_made).filter(asObject);
+  const ats = asObject(data.ats_optimization);
+  const alternatives = asArray(data.alternatives).filter((alt) => asObject(alt) && typeof alt.text === "string");
+  const hasTips = asArray(data.tips).length > 0 || asArray(data.formatting_suggestions).length > 0;
+  const hasFeedback =
+    asArray(data.key_improvements).length > 0 ||
+    asArray(analysis.original_strengths).length > 0 ||
+    asArray(analysis.original_weaknesses).length > 0 ||
+    changes.length > 0 ||
+    data.improvement_score != null;
+
+  const hasPlaceholders = [data.improved_text, ...alternatives.map((alt) => alt.text)].some(
+    (text) => typeof text === "string" && /\[[^\]\n]+\]/.test(text)
+  );
+
+  const sections = [
+    { id: "rewrite", label: "Rewrite" },
+    hasFeedback && { id: "changes", label: "Changes" },
+    ats && { id: "ats", label: "ATS" },
+    alternatives.length > 0 && { id: "alternatives", label: "Alternatives" },
+    hasTips && { id: "tips", label: "Tips" },
+  ].filter(Boolean);
 
   return (
-        <div className="space-y-6">
-          {/* Improved Version */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-                <Sparkles className="text-emerald-600" size={20} />
-                Improved Version
-              </h2>
-              <button
-                onClick={() =>
-                  onCopy(data.improved_text, 'improved')
-                }
-                className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 transition-colors"
-              >
-                {copiedText === 'improved' ? (
-                  <>
-                    <Check size={16} />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy size={16} />
-                    Copy
-                  </>
-                )}
-              </button>
-            </div>
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-              <div className="whitespace-pre-wrap text-slate-800 font-medium">
-                {parseMarkdownText(data.improved_text)}
+    <ReportLayout sections={sections}>
+      <ReportPanel id="rewrite" title="Rewrite" action={<CopyButton text={plain(data.improved_text)} />}>
+        {hasPlaceholders && (
+          <p className="mb-5 text-[15px] text-ink-2">
+            Replace the <mark className="rounded-[4px] bg-caution/10 px-1 text-caution">[highlighted]</mark> placeholders with your real figures, or delete them before you use this text.
+          </p>
+        )}
+        <div className={`grid gap-6 ${original ? "lg:grid-cols-2" : ""}`}>
+          {original && (
+            <div>
+              <SubHeading>Original</SubHeading>
+              <div className="whitespace-pre-wrap rounded-control bg-sunken p-4 text-[15px] leading-6 text-ink-3">
+                {original}
               </div>
+            </div>
+          )}
+          <div>
+            <SubHeading>Improved</SubHeading>
+            <div className="whitespace-pre-wrap rounded-control p-4 text-[15px] leading-6 text-ink shadow-[inset_0_0_0_1px_var(--color-line-strong)]">
+              {parseMarkdownText(data.improved_text)}
             </div>
           </div>
+        </div>
+      </ReportPanel>
 
-          {/* Improvement Analysis */}
-          {data.analysis && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2 mb-6">
-                <Lightbulb className="text-amber-500" size={20} />
-                Detailed Analysis & Feedback
-              </h2>
-
-              {/* Improvement Score */}
-              <div className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-slate-800">
-                    Improvement Score
-                  </h3>
-                  <span className="text-2xl font-bold text-emerald-600">
-                    {data.improvement_score || 0}/100
-                  </span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-3">
-                  <div
-                    className="bg-gradient-to-r from-emerald-500 to-blue-500 h-3 rounded-full transition-all duration-700"
-                    style={{ width: `${data.improvement_score || 0}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Key Improvements */}
-              {data.key_improvements && data.key_improvements.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="font-semibold text-slate-800 mb-3">
-                    Key Improvements Made
-                  </h3>
-                  <div className="space-y-2">
-                    {data.key_improvements.map((improvement, index) => (
-                      <div
-                        key={index}
-                        className="flex items-start gap-3 p-3 bg-emerald-50 rounded-lg"
-                      >
-                        <div className="flex-shrink-0 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-white">
-                          <Check size={12} />
-                        </div>
-                        <p className="text-slate-700 text-sm">
-                          {parseMarkdownText(improvement)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Original Strengths & Weaknesses */}
-              <div className="grid md:grid-cols-2 gap-6 mb-6">
-                {data.analysis.original_strengths &&
-                  data.analysis.original_strengths.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                        <CheckCircle className="text-green-600" size={16} />
-                        Original Strengths
-                      </h3>
-                      <div className="space-y-2">
-                        {data.analysis.original_strengths.map(
-                          (strength, index) => (
-                            <div
-                              key={index}
-                              className="p-3 bg-green-50 border border-green-200 rounded-lg"
-                            >
-                              <p className="text-green-800 text-sm">
-                                {parseMarkdownText(strength)}
-                              </p>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                {data.analysis.original_weaknesses &&
-                  data.analysis.original_weaknesses.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                        <AlertTriangle
-                          className="text-orange-600"
-                          size={16}
-                        />
-                        Areas for Improvement
-                      </h3>
-                      <div className="space-y-2">
-                        {data.analysis.original_weaknesses.map(
-                          (weakness, index) => (
-                            <div
-                              key={index}
-                              className="p-3 bg-orange-50 border border-orange-200 rounded-lg"
-                            >
-                              <p className="text-orange-800 text-sm">
-                                {parseMarkdownText(weakness)}
-                              </p>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )}
-              </div>
-
-              {/* Specific Improvements Made */}
-              {data.analysis.improvements_made &&
-                data.analysis.improvements_made.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="font-semibold text-slate-800 mb-3">
-                      Specific Changes Made
-                    </h3>
-                    <div className="space-y-3">
-                      {data.analysis.improvements_made.map(
-                        (improvement, index) => (
-                          <div
-                            key={index}
-                            className="p-4 bg-blue-50 border border-blue-200 rounded-lg"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                {index + 1}
-                              </div>
-                              <div className="flex-grow">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full font-medium">
-                                    {improvement.category}
-                                  </span>
-                                </div>
-                                <p className="text-blue-900 font-medium text-sm mb-1">
-                                  {parseMarkdownText(improvement.change)}
-                                </p>
-                                <p className="text-blue-700 text-xs">
-                                  {parseMarkdownText(improvement.reason)}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-            </div>
-          )}
-
-          {/* ATS Optimization */}
-          {data.ats_optimization && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2 mb-6">
-                <Bot className="text-blue-600" size={20} />
-                ATS Optimization
-              </h2>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Keyword Density */}
-                <div className="p-4 bg-blue-50 rounded-xl">
-                  <h3 className="font-semibold text-blue-800 mb-2">
-                    Keyword Density
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-grow">
-                      <div className="w-full bg-blue-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-700"
-                          style={{
-                            width: `${
-                              data.ats_optimization.keyword_density || 0
-                            }%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                    <span className="text-blue-600 font-bold">
-                      {data.ats_optimization.keyword_density || 0}%
-                    </span>
-                  </div>
-                </div>
-
-                {/* Format Score */}
-                <div className="p-4 bg-purple-50 rounded-xl">
-                  <h3 className="font-semibold text-purple-800 mb-2">
-                    Format Score
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-grow">
-                      <div className="w-full bg-purple-200 rounded-full h-2">
-                        <div
-                          className="bg-purple-600 h-2 rounded-full transition-all duration-700"
-                          style={{
-                            width: `${
-                              data.ats_optimization.formatting_score || 0
-                            }%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                    <span className="text-purple-600 font-bold">
-                      {data.ats_optimization.formatting_score || 0}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Suggested Keywords */}
-              {data.ats_optimization.suggested_keywords &&
-                data.ats_optimization.suggested_keywords.length > 0 && (
-                  <div className="mt-4">
-                    <h3 className="font-semibold text-slate-800 mb-3">
-                      Suggested Keywords to Include
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {data.ats_optimization.suggested_keywords.map(
-                        (keyword, index) => (
-                          <span
-                            key={index}
-                            className="px-3 py-1 border border-blue-400 text-blue-700 bg-white text-sm rounded-full font-medium"
-                          >
-                            {keyword}
-                          </span>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-            </div>
-          )}
-
-          {/* Alternative Versions */}
-          {data.alternatives && data.alternatives.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2 mb-6">
-                <Star className="text-indigo-600" size={20} />
-                Alternative Versions
-              </h2>
-              <div className="space-y-4">
-                {data.alternatives.map((alternative, index) => (
-                  <div
-                    key={index}
-                    className="border border-slate-200 rounded-xl p-4"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold text-slate-800">
-                        {alternative.version}
-                      </h3>
-                      <button
-                        onClick={() =>
-                          onCopy(
-                            alternative.text,
-                            `alternative-${index}`
-                          )
-                        }
-                        className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 transition-colors text-sm"
-                      >
-                        {copiedText === `alternative-${index}` ? (
-                          <>
-                            <Check size={14} />
-                            Copied!
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={14} />
-                            Copy
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
-                      <div className="whitespace-pre-wrap text-slate-800 text-sm">
-                        {parseMarkdownText(alternative.text)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tips */}
-          {data.tips && data.tips.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2 mb-4">
-                <Lightbulb className="text-amber-500" size={20} />
-                Professional Tips
-              </h2>
-              <div className="space-y-3">
-                {data.tips.map((tip, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl"
-                  >
-                    <div className="flex-shrink-0 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
-                      <Lightbulb size={12} className="text-white" />
-                    </div>
-                    <p className="text-amber-800 text-sm">
-                      {parseMarkdownText(tip)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Formatting Suggestions */}
-          {data.formatting_suggestions &&
-            data.formatting_suggestions.length > 0 && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2 mb-4">
-                  <FileText className="text-green-600" size={20} />
-                  Formatting Suggestions
-                </h2>
-                <div className="space-y-3">
-                  {data.formatting_suggestions.map(
-                    (suggestion, index) => (
-                      <div
-                        key={index}
-                        className="flex items-start gap-3 p-4 bg-green-50 rounded-xl"
-                      >
-                        <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                          {index + 1}
-                        </div>
-                        <p className="text-green-800 text-sm">
-                          {parseMarkdownText(suggestion)}
-                        </p>
-                      </div>
-                    )
-                  )}
-                </div>
+      {hasFeedback && (
+        <ReportPanel id="changes" title="What changed">
+          <div className="grid gap-8 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+            <ScoreDisplay score={data.improvement_score} kind="quality" caption="Improvement score" />
+            {asArray(data.key_improvements).length > 0 && (
+              <div>
+                <SubHeading>Key improvements</SubHeading>
+                <BulletList items={data.key_improvements} tone="positive" render={parseMarkdownText} />
               </div>
             )}
-        
-            {/* Ad after results */}
-            <AdWrapper>
-              <ResultsAd className="mt-8" />
-            </AdWrapper>
-        </div>
+          </div>
+
+          {changes.length > 0 && (
+            <ul className="mt-8 divide-y divide-line border-t border-line">
+              {changes.map((change, index) => (
+                <li key={index} className="py-4 last:pb-0">
+                  {change.category && <span className="badge mb-2">{change.category}</span>}
+                  <p className="text-[15px] leading-6 text-ink">{parseMarkdownText(change.change)}</p>
+                  {change.reason && (
+                    <p className="mt-1 text-sm text-ink-3">{parseMarkdownText(change.reason)}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="mt-8 grid gap-8 border-t border-line pt-6 empty:hidden md:grid-cols-2">
+            {asArray(analysis.original_strengths).length > 0 && (
+              <div>
+                <SubHeading>Already working in the original</SubHeading>
+                <BulletList items={analysis.original_strengths} tone="positive" render={parseMarkdownText} />
+              </div>
+            )}
+            {asArray(analysis.original_weaknesses).length > 0 && (
+              <div>
+                <SubHeading>Weak spots in the original</SubHeading>
+                <BulletList items={analysis.original_weaknesses} tone="warning" render={parseMarkdownText} />
+              </div>
+            )}
+          </div>
+        </ReportPanel>
+      )}
+
+      {ats && (
+        <ReportPanel id="ats" title="ATS optimisation">
+          <div className="grid gap-6 sm:grid-cols-2">
+            <ScoreBar label="Keyword density" score={ats.keyword_density} />
+            <ScoreBar label="Format score" score={ats.formatting_score} />
+          </div>
+          {asArray(ats.suggested_keywords).length > 0 && (
+            <div className="mt-8">
+              <SubHeading>Keywords to consider adding</SubHeading>
+              <KeywordList items={ats.suggested_keywords} />
+            </div>
+          )}
+        </ReportPanel>
+      )}
+
+      {alternatives.length > 0 && (
+        <ReportPanel id="alternatives" title="Alternative versions">
+          <ul className="divide-y divide-line">
+            {alternatives.map((alt, index) => (
+              <li key={index} className="py-5 first:pt-0 last:pb-0">
+                <div className="mb-3 flex items-center justify-between gap-4">
+                  <h3 className="text-[15px] font-medium text-ink">{alt.version || `Version ${index + 1}`}</h3>
+                  <CopyButton text={plain(alt.text)} />
+                </div>
+                <div className="whitespace-pre-wrap text-[15px] leading-6 text-ink-2">
+                  {parseMarkdownText(alt.text)}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </ReportPanel>
+      )}
+
+      {hasTips && (
+        <ReportPanel id="tips" title="Tips">
+          <div className="grid gap-8 md:grid-cols-2">
+            {asArray(data.tips).length > 0 && (
+              <div>
+                <SubHeading>Writing</SubHeading>
+                <BulletList items={data.tips} render={parseMarkdownText} />
+              </div>
+            )}
+            {asArray(data.formatting_suggestions).length > 0 && (
+              <div>
+                <SubHeading>Formatting</SubHeading>
+                <BulletList items={data.formatting_suggestions} render={parseMarkdownText} />
+              </div>
+            )}
+          </div>
+        </ReportPanel>
+      )}
+    </ReportLayout>
   );
 }

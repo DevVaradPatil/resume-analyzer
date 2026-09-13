@@ -1,0 +1,28 @@
+MEERA KULKARNI
+Backend Engineer
+Pune, India | meera.kulkarni@example.com | +91 90000 00000 | linkedin.com/in/example
+
+SUMMARY
+Backend engineer with 4 years of experience building APIs and services. Worked on payments and order systems. Looking for a senior role.
+
+EXPERIENCE
+Software Engineer II, Tallyfy Commerce (fictional), Pune | Jun 2022 - Present
+- Worked on the payments service that handles UPI and card transactions
+- Responsible for writing APIs in Node.js and maintaining PostgreSQL databases
+- Helped move the reconciliation job from cron scripts to a queue based worker
+- Wrote unit tests and fixed production bugs
+- Participated in code reviews
+
+Software Engineer, Brightlane Logistics (fictional), Bengaluru | Jul 2020 - May 2022
+- Built REST APIs for shipment tracking used by the mobile app
+- Added Redis caching to the tracking endpoint
+- Worked with the frontend team on React dashboards
+
+SKILLS
+JavaScript, TypeScript, Node.js, Express, PostgreSQL, Redis, REST APIs, Git, Jest, Docker, AWS (EC2, S3), React
+
+EDUCATION
+B.E. Computer Engineering, Pune Institute of Technology (fictional), 2020
+
+PROJECTS
+Split Ledger: a side project for splitting shared expenses, built with Node.js and PostgreSQL

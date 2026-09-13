@@ -1,0 +1,24 @@
+Senior Backend Engineer, Payments
+Northwind Pay (fictional), Bengaluru (hybrid)
+
+About the role
+You will own services that move money: payment initiation, settlement and reconciliation for UPI, cards and netbanking. You will lead design for new services and mentor two to three engineers.
+
+What you will do
+- Design and build high-throughput payment services in Node.js or Go
+- Own reconciliation and settlement pipelines end to end
+- Lead technical design reviews and mentor engineers on the team
+- Improve reliability: observability, alerting, incident response
+- Work with compliance on PCI DSS and RBI guidelines
+
+What we are looking for
+- 5+ years of backend engineering experience
+- Strong Node.js or Go, and PostgreSQL
+- Experience with event-driven architecture and message queues (Kafka or RabbitMQ)
+- Kubernetes and Terraform in production
+- Experience with idempotency, retries and distributed transactions in payment systems
+- Track record of mentoring or technical leadership
+
+Nice to have
+- gRPC, Prometheus and Grafana
+- Experience with PCI DSS compliance

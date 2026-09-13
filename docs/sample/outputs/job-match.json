@@ -1,0 +1,260 @@
+{
+  "score": 75,
+  "summary_insights": {
+    "overall_grade": "B",
+    "ats_readiness": 85,
+    "competitiveness": 70,
+    "experience_level": {
+      "resume_level": "Mid-level",
+      "job_level": "Senior",
+      "match": false,
+      "mismatch_details": "The candidate has 4 years of experience, while the job explicitly requires '5+ years of backend engineering experience'. Additionally, the job emphasizes strong technical leadership and mentoring, which is not prominently demonstrated in the resume for a senior role."
+    },
+    "top_strengths": [
+      "Direct experience with payments systems, including UPI and card transactions, and reconciliation.",
+      "Strong proficiency in core required technologies: Node.js, Express, and PostgreSQL.",
+      "Demonstrated proactivity in improving system reliability (e.g., moving reconciliation job, adding caching).",
+      "Experience across the full development lifecycle from API design to production support and code reviews."
+    ],
+    "priority_actions": [
+      {
+        "priority": "High",
+        "area": "Experience & Leadership",
+        "recommendation": "Clearly articulate any instances of technical leadership, mentoring, or leading design efforts. If lacking, focus on demonstrating impact, problem-solving, and ownership for significant system components."
+      },
+      {
+        "priority": "High",
+        "area": "Skills & Technologies",
+        "recommendation": "Acquire and demonstrate experience with critical missing technologies such as event-driven architecture (Kafka/RabbitMQ), Kubernetes, and Terraform. Even mentioning familiarity or learning initiatives would help."
+      },
+      {
+        "priority": "High",
+        "area": "Work Experience",
+        "recommendation": "Elaborate on the impact and scope of projects, using quantifiable metrics where possible. Explicitly mention design contributions, especially for reconciliation and settlement pipelines, and how reliability was improved."
+      },
+      {
+        "priority": "Medium",
+        "area": "Professional Summary",
+        "recommendation": "Update the summary to briefly mention key achievements and direct alignment with the Senior role requirements (e.g., leadership aspirations, specific payment domain expertise), rather than just stating 'looking for a senior role'."
+      }
+    ]
+  },
+  "comprehensive_analysis": {
+    "overall_score": 75,
+    "detailed_metrics": {
+      "relevance": {
+        "score": 80,
+        "details": {
+          "experience_match": 85,
+          "education_match": 75
+        }
+      },
+      "ats_compatibility": {
+        "score": 70,
+        "details": {
+          "keyword_density": 65,
+          "format_score": 75
+        }
+      },
+      "content_quality": {
+        "score": 75,
+        "details": {
+          "clarity": 80,
+          "impact": 70
+        }
+      },
+      "skills_alignment": {
+        "score": 65,
+        "details": {
+          "matching_skills_percentage": 65,
+          "missing_critical_skills": 6
+        }
+      }
+    },
+    "strengths": [
+      "Highly relevant experience in payments systems, including UPI and card transactions.",
+      "Demonstrated experience in a critical area like reconciliation.",
+      "Strong technical foundation in Node.js, Express, and PostgreSQL, which are core requirements.",
+      "Proactive approach to improving system performance and reliability (e.g., Redis caching, queue-based workers).",
+      "Good understanding of the software development lifecycle, including testing and production support."
+    ],
+    "weaknesses": [
+      "Falls short of the '5+ years of backend engineering experience' requirement.",
+      "Lacks explicit mention of technical leadership, mentoring, or leading design reviews, which are key for a Senior role.",
+      "Significant gaps in critical technical skills required: event-driven architecture (Kafka/RabbitMQ), Kubernetes, and Terraform.",
+      "No mention of experience with advanced payment system concepts like idempotency, retries, and distributed transactions.",
+      "Missing experience with observability/alerting tools (Prometheus/Grafana) and compliance (PCI DSS, RBI guidelines)."
+    ],
+    "improvement_suggestions": [
+      "Quantify achievements in the 'EXPERIENCE' section using metrics (e.g., 'Handled X transactions per second,' 'Reduced reconciliation time by Y%') to highlight impact.",
+      "If applicable, explicitly detail instances of 'leading design,' 'owning services end-to-end,' or 'mentoring' within work experience.",
+      "Gain hands-on experience or certifications in Kubernetes, Terraform, and a message queue system (Kafka/RabbitMQ), and prominently add them to the skills section.",
+      "Research and understand PCI DSS and RBI guidelines relevant to payments, and highlight any related work or knowledge.",
+      "Expand the summary to be more achievement-oriented and align directly with the senior-level requirements of the job."
+    ]
+  },
+  "ats_analysis": {
+    "score": 75,
+    "format_issues": [],
+    "keyword_match": {
+      "percentage": 65,
+      "matches": [
+        "Backend Engineer",
+        "payments",
+        "Node.js",
+        "PostgreSQL",
+        "API",
+        "services",
+        "reconciliation",
+        "UPI",
+        "card transactions",
+        "Express",
+        "Redis",
+        "REST APIs",
+        "Git",
+        "Jest",
+        "Docker",
+        "AWS",
+        "unit tests",
+        "production bugs",
+        "code reviews"
+      ],
+      "missing": [
+        "Go",
+        "event-driven architecture",
+        "message queues",
+        "Kafka",
+        "RabbitMQ",
+        "Kubernetes",
+        "Terraform",
+        "idempotency",
+        "retries",
+        "distributed transactions",
+        "mentoring",
+        "technical leadership",
+        "observability",
+        "alerting",
+        "incident response",
+        "PCI DSS",
+        "RBI guidelines",
+        "gRPC",
+        "Prometheus",
+        "Grafana",
+        "settlement"
+      ]
+    },
+    "recommendations": [
+      "Integrate missing technical keywords (e.g., Kubernetes, Terraform, Kafka) into the skills section and work experience if relevant projects exist.",
+      "Use phrases related to 'leadership,' 'mentoring,' 'design,' and 'owning services' if these responsibilities were part of her roles to better match senior-level keywords.",
+      "Consider a 'Keywords' or 'Technical Competencies' section if space allows to explicitly list all relevant technologies."
+    ]
+  },
+  "skills_analysis": {
+    "matching_skills": [
+      "JavaScript",
+      "TypeScript",
+      "Node.js",
+      "Express",
+      "PostgreSQL",
+      "Redis",
+      "REST APIs",
+      "Git",
+      "Jest",
+      "Docker",
+      "AWS (EC2, S3)"
+    ],
+    "missing_skills": [
+      "Go",
+      "event-driven architecture",
+      "message queues",
+      "Kafka",
+      "RabbitMQ",
+      "Kubernetes",
+      "Terraform",
+      "idempotency",
+      "retries",
+      "distributed transactions",
+      "mentoring",
+      "technical leadership",
+      "observability",
+      "alerting",
+      "incident response",
+      "PCI DSS",
+      "RBI guidelines",
+      "gRPC",
+      "Prometheus",
+      "Grafana"
+    ],
+    "additional_skills": [
+      "React"
+    ]
+  },
+  "section_feedback": {
+    "contact_information": "Well-formatted and complete. Includes all necessary contact details for easy access.",
+    "professional_summary": "The summary is concise but too brief for a senior role. It clearly states experience but needs to be expanded to highlight key achievements, leadership aspirations, and direct alignment with the 'payments' domain and 'senior' responsibilities (e.g., designing, leading, owning services). The 'Looking for a senior role' statement could be reframed to be more assertive, such as 'Seeking a Senior Backend Engineer role leveraging X years of experience...' or similar.",
+    "work_experience": "Good use of action verbs and specific technologies, with highly relevant experience in payments and reconciliation. To strengthen for a Senior role, quantify achievements and impact where possible (e.g., 'Handled X transactions per second,' 'Reduced reconciliation time by Y%'). Explicitly detail instances of 'leading design,' 'owning services end-to-end,' or 'mentoring' if applicable. Highlight contributions to reliability, observability, or incident response more clearly.",
+    "education": "Standard and clear. Appropriate for the experience level.",
+    "skills": "Lists relevant technologies with strong alignment to Node.js and PostgreSQL. However, it critically lacks several keywords requested in the job description, such as Kubernetes, Terraform, Kafka/RabbitMQ, and more advanced payment system concepts. Consider grouping skills by category (e.g., Languages, Frameworks, Databases, Cloud, Tools) for better readability, though the current format is acceptable.",
+    "projects": "Relevant side project demonstrating initiative and practical application of core skills (Node.js, PostgreSQL). Briefly mentioning its purpose is good. Could add a link to the repository if public to allow recruiters to review code.",
+    "certifications": "Not present. Consider adding any relevant certifications, especially in cloud platforms (AWS), DevOps, or payment security."
+  },
+  "industry_insights": {
+    "industry_trends": [
+      "**Microservices & Event-Driven Architectures**: Payment systems are increasingly moving towards highly decoupled, event-driven microservices for scalability and resilience. Technologies like Kafka or RabbitMQ are critical for these architectures.",
+      "**DevOps & Cloud-Native**: Kubernetes, Terraform, and robust CI/CD pipelines are becoming standard for deploying and managing high-throughput services efficiently in the cloud.",
+      "**Security & Compliance**: For payments, adherence to standards like PCI DSS and local regulations (RBI in India) is paramount, requiring specific knowledge and implementation practices.",
+      "**Observability & Reliability**: Tools like Prometheus, Grafana, and robust incident response protocols are crucial for maintaining uptime and quickly resolving issues in production, especially for critical financial services."
+    ],
+    "recommendations": [
+      "Prioritize gaining practical experience in event-driven architecture, container orchestration (Kubernetes), and infrastructure as code (Terraform) to align with modern payment system development.",
+      "Deepen knowledge of payment security best practices and compliance standards (PCI DSS, RBI) through courses, certifications, or by actively seeking related work at current/future roles.",
+      "Actively seek opportunities to lead technical discussions, mentor junior engineers, and take ownership of significant system components to build a strong leadership profile for future senior roles."
+    ]
+  },
+  "gap_analysis": {
+    "identified_gaps": [
+      "Experience Years & Seniority (4 years vs 5+ required, limited explicit leadership)",
+      "Advanced Payment System Concepts (idempotency, retries, distributed transactions)",
+      "Core Infrastructure & Architecture (event-driven architecture, Kubernetes, Terraform)",
+      "Reliability & Compliance Tools (observability tools, PCI DSS, RBI guidelines)",
+      "Technical Leadership (leading design, mentoring engineers)"
+    ],
+    "learning_paths": [
+      {
+        "gap": "Experience Years & Seniority",
+        "recommendations": [
+          "Highlight any instances of significant ownership, project leadership, or impactful contributions, even if not formally titled 'lead'.",
+          "Focus on problem-solving skills and readiness to take on senior responsibilities during interviews."
+        ]
+      },
+      {
+        "gap": "Advanced Payment System Concepts",
+        "recommendations": [
+          "Research and study design patterns for idempotency, retries, and distributed transactions in financial systems.",
+          "If possible, propose an enhancement at work or initiate a side project that incorporates these concepts and then highlight it in the resume."
+        ]
+      },
+      {
+        "gap": "Core Infrastructure & Architecture",
+        "recommendations": [
+          "Complete online courses or certifications in Kubernetes, Terraform, and a message queue system like Kafka or RabbitMQ.",
+          "Work on personal projects utilizing these technologies to demonstrate hands-on experience and familiarity."
+        ]
+      },
+      {
+        "gap": "Reliability & Compliance Tools",
+        "recommendations": [
+          "Explore open-source monitoring tools like Prometheus and Grafana by integrating them into a personal project or seeking opportunities at work.",
+          "Familiarize yourself with PCI DSS and RBI guidelines through official documentation and industry resources to understand their impact on payment systems."
+        ]
+      },
+      {
+        "gap": "Technical Leadership",
+        "recommendations": [
+          "Actively seek opportunities to mentor junior colleagues, lead technical design discussions, or present technical topics at work.",
+          "Prepare behavioral interview answers that showcase leadership potential, collaborative abilities, and how you've guided others or influenced technical decisions."
+        ]
+      }
+    ]
+  }
+}

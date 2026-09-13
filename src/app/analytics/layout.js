@@ -12,7 +12,7 @@ export const metadata = {
     title: 'Resume Analytics - Overall Resume Analysis',
     description: 'Get comprehensive analytics and insights about your resume performance.',
     url: 'https://resumeinsight.vercel.app/analytics',
-    images: ['/assets/landing.png'],
+    images: ['/assets/product/og.png'],
   },
   alternates: {
     canonical: '/analytics',

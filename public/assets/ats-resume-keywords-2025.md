@@ -1,6 +1,6 @@
 # 10 Essential Resume Keywords That Get You Noticed by ATS Systems  
 
-If you’ve ever applied for a job online, chances are your resume was first read by an **Applicant Tracking System (ATS)** before it ever reached a recruiter’s eyes. These systems scan resumes for specific keywords to determine whether you’re a strong match for the role. If your resume doesn’t include the right terms, it could get filtered out—even if you’re highly qualified.  
+If you’ve ever applied for a job online, chances are your resume was first read by an **Applicant Tracking System (ATS)** before it ever reached a recruiter’s eyes. These systems scan resumes for specific keywords to determine whether you’re a strong match for the role. If your resume doesn’t include the right terms, it could get filtered out, even if you’re highly qualified.  
 
 The good news? You can beat the ATS by tailoring your resume with smart keyword usage. Below, we’ll explore **10 essential resume keywords** that not only help you pass ATS filters but also make you stand out to hiring managers.  
 
@@ -86,12 +86,12 @@ Many roles require client interaction. Keywords like *served, supported, deliver
 
 ---
 
-## ✅ Final Tips for Using Keywords  
+## Final Tips for Using Keywords  
 - **Mirror the job description**: Scan the posting and align your keywords with it.  
-- **Use them naturally**: Don’t just stuff keywords—back them with real achievements.  
+- **Use them naturally**: Don’t just stuff keywords. Back them with real achievements.  
 - **Balance hard and soft skills**: Employers want both technical expertise and interpersonal strengths.  
 
 ---
 
-### 🚀 Key Takeaway  
+### Key Takeaway  
 The right keywords can be the difference between your resume being overlooked or landing an interview. By weaving in these **10 essential ATS-friendly keywords**, you’ll not only pass the automated filters but also show recruiters you’re exactly who they’re looking for.  

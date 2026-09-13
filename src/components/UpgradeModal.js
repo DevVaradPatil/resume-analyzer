@@ -1,54 +1,26 @@
 "use client";
 
 import React, { useId, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Zap, AlertTriangle, Check, Rocket, Crown } from "lucide-react";
-import AlertModal from "./AlertModal";
+import { X, Check } from "lucide-react";
+import CheckoutConfirm from "./CheckoutConfirm";
 import { useModalA11y } from "../hooks/useModalA11y";
+import { SUBSCRIPTION_TIERS, PAID_PERIOD_DAYS, getTierFeatures } from "../lib/tiers";
+import { formatBytes } from "../lib/file-validation";
 
-const UPGRADE_TIERS = [
-  {
-    id: "pro",
-    name: "Pro",
-    price: 249,
-    icon: Rocket,
-    iconColor: "text-blue-600",
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-300",
-    buttonStyle: "bg-blue-600 text-white hover:bg-blue-700",
-    popular: true,
-    features: [
-      "50 analyses per feature/month",
-      "10MB file size limit",
-      "Advanced ATS optimization",
-      "Priority support",
-    ],
-  },
-  {
-    id: "executive",
-    name: "Executive",
-    price: 999,
-    icon: Crown,
-    iconColor: "text-purple-600",
-    bgColor: "bg-purple-50",
-    borderColor: "border-purple-300",
-    buttonStyle:
-      "bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700",
-    features: [
-      "Unlimited analyses",
-      "25MB file size limit",
-      "Premium ATS optimization",
-      "24/7 Priority support",
-    ],
-  },
-];
+const UPGRADE_TIER_IDS = ["pro", "executive"];
+const RECOMMENDED_TIER = "pro";
 
-// Human-readable names for the internal feature keys, so copy reads
-// "Resume Analytics credits" rather than "analytics credits".
+// Human-readable names for the internal feature keys.
 const FEATURE_LABELS = {
-  analyze: "Job Match Analysis",
-  analytics: "Resume Analytics",
-  improve: "Section Improvement",
+  analyze: "job match",
+  analytics: "resume analytics",
+  improve: "section improvement",
+};
+
+const formatResetDate = (iso) => {
+  const date = iso ? new Date(iso) : null;
+  if (!date || Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-IN", { day: "numeric", month: "long" });
 };
 
 export default function UpgradeModal({
@@ -59,297 +31,154 @@ export default function UpgradeModal({
   currentTier = "free",
   usageInfo = null,
 }) {
-  const [alertState, setAlertState] = useState({
-    isOpen: false,
-    type: "success",
-    message: "",
-  });
+  const [checkoutTier, setCheckoutTier] = useState(null);
 
   const titleId = useId();
   const descId = useId();
-  const dialogRef = useModalA11y(isOpen, onClose);
+  const dialogRef = useModalA11y(isOpen, () => close());
 
   if (!isOpen) return null;
 
-  const handleUpgrade = async (tierId) => {
-    try {
-      // 1. Create Order
-      const response = await fetch("/api/subscription/create-order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ tier: tierId }),
-      });
-
-      const data = await response.json();
-
-      if (data.status !== "success") {
-        throw new Error(data.error || "Failed to create order");
-      }
-
-      // 2. Initialize Razorpay
-      const options = {
-        key: data.keyId,
-        amount: data.amount,
-        currency: data.currency,
-        name: "Resume Analyzer",
-        description: `${
-          UPGRADE_TIERS.find((t) => t.id === tierId)?.name
-        } Subscription`,
-        order_id: data.orderId,
-
-        handler: async function (response) {
-          try {
-            // 3. Verify Payment
-            const verifyResponse = await fetch(
-              "/api/subscription/verify-payment",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                  // Tier is intentionally NOT sent: the server reads it back
-                  // from the Razorpay order, which the client cannot forge.
-                }),
-              }
-            );
-
-            const verifyData = await verifyResponse.json();
-
-            if (verifyData.status === "success") {
-              setAlertState({
-                isOpen: true,
-                type: "success",
-                message: "Subscription updated successfully!",
-              });
-
-              setTimeout(() => {
-                onClose();
-                window.location.reload();
-              }, 2000);
-            } else {
-              throw new Error(
-                verifyData.error || "Payment verification failed"
-              );
-            }
-          } catch (error) {
-            console.error("Payment verification error:", error);
-            setAlertState({
-              isOpen: true,
-              type: "error",
-              message: "Payment verification failed. Please contact support.",
-            });
-          }
-        },
-
-        theme: {
-          color: "#2563eb",
-        },
-      };
-
-      const rzp1 = new window.Razorpay(options);
-      rzp1.open();
-    } catch (error) {
-      console.error("Payment initialization error:", error);
-      setAlertState({
-        isOpen: true,
-        type: "error",
-        message: "Failed to initialize payment. Please try again.",
-      });
-    }
+  const close = () => {
+    setCheckoutTier(null);
+    onClose();
   };
 
-  const formatBytes = (bytes) => {
-    if (typeof bytes !== "number" || Number.isNaN(bytes)) return null;
-    const mb = bytes / (1024 * 1024);
-    // Whole numbers for the tier limits, one decimal for the user's file.
-    return `${Number.isInteger(mb) ? mb : mb.toFixed(1)}MB`;
-  };
+  const featureName = FEATURE_LABELS[featureType] || featureType;
 
   const getReasonMessage = () => {
-    switch (reason) {
-      case "LIMIT_REACHED": {
-        const limit = usageInfo?.limit;
-        return {
-          title: "Monthly Limit Reached",
-          message:
-            typeof limit === "number" && limit > 0
-              ? `You've used all ${limit} of your ${FEATURE_LABELS[featureType] || featureType} credits for this month.`
-              : `You've used all your ${FEATURE_LABELS[featureType] || featureType} credits for this month.`,
-          icon: AlertTriangle,
-          iconColor: "text-amber-500",
-        };
-      }
-      case "FILE_TOO_LARGE": {
-        const max = formatBytes(usageInfo?.maxSize);
-        const current = formatBytes(usageInfo?.currentSize);
-        const tierName = usageInfo?.tier
-          ? usageInfo.tier.charAt(0).toUpperCase() + usageInfo.tier.slice(1)
-          : null;
+    if (reason === "FILE_TOO_LARGE") {
+      const max = formatBytes(usageInfo?.maxSize);
+      const current = formatBytes(usageInfo?.currentSize);
+      const tierName = SUBSCRIPTION_TIERS[usageInfo?.tier]?.name;
 
-        return {
-          title: "File Size Exceeded",
-          message:
-            max && current && tierName
-              ? `Your file is ${current}, which exceeds the ${max} limit on the ${tierName} plan.`
-              : max
-              ? `Your file exceeds the ${max} limit on your current plan.`
-              : "Your file exceeds the size limit on your current plan.",
-          icon: AlertTriangle,
-          iconColor: "text-amber-500",
-        };
-      }
-      default:
-        return {
-          title: "Upgrade Required",
-          message: "Upgrade to unlock more features and higher limits.",
-          icon: Zap,
-          iconColor: "text-blue-500",
-        };
+      return {
+        title: "This file is too large",
+        message:
+          max && current && tierName
+            ? `Your file is ${current}. The ${tierName} plan accepts PDFs up to ${max}.`
+            : "This file is over the size limit for your current plan.",
+      };
     }
+
+    if (reason === "LIMIT_REACHED") {
+      const { used, limit } = usageInfo || {};
+      const reset = formatResetDate(usageInfo?.resetDate);
+      const count =
+        typeof used === "number" && typeof limit === "number" && limit > 0
+          ? `You have used ${used} of ${limit} ${featureName} ${limit === 1 ? "run" : "runs"} this month.`
+          : `You have used this month's ${featureName} runs.`;
+
+      return {
+        title: "Monthly limit reached",
+        message: reset ? `${count} More become available on ${reset}.` : count,
+      };
+    }
+
+    return {
+      title: "Upgrade your plan",
+      message: "Paid plans raise your monthly limits and file size.",
+    };
   };
 
   const reasonInfo = getReasonMessage();
-  const ReasonIcon = reasonInfo.icon;
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        {/* Backdrop */}
-        <motion.div
-          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 scrim animate-fadeIn" onClick={close} />
 
-        {/* Modal */}
-        <motion.div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          aria-describedby={descId}
-          tabIndex={-1}
-          className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto outline-none"
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={checkoutTier ? undefined : descId}
+        tabIndex={-1}
+        className="panel relative w-full max-w-[640px] max-h-[90vh] overflow-y-auto shadow-overlay outline-none animate-slideIn"
+      >
+        <button
+          type="button"
+          onClick={close}
+          aria-label="Close"
+          className="btn btn-ghost absolute top-3 right-3 h-8 w-8 px-0"
         >
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" aria-hidden="true" />
-          </button>
+          <X size={18} strokeWidth={1.75} aria-hidden="true" />
+        </button>
 
-          {/* Header */}
-          <div className="p-6 border-b border-slate-200">
-            <div className="flex items-center gap-3 mb-2">
-              <div className={`p-2 rounded-lg bg-slate-100`} aria-hidden="true">
-                <ReasonIcon className={`w-6 h-6 ${reasonInfo.iconColor}`} />
-              </div>
-              <h2 id={titleId} className="text-2xl font-bold text-slate-800">
-                {reasonInfo.title}
-              </h2>
-            </div>
-            <p id={descId} className="text-slate-600">{reasonInfo.message}</p>
-
-            {reason === "LIMIT_REACHED" &&
-              typeof usageInfo?.used === "number" &&
-              typeof usageInfo?.limit === "number" &&
-              usageInfo.limit > 0 && (
-                <div className="mt-4 p-3 bg-slate-50 rounded-lg">
-                  <p className="text-sm text-slate-600">
-                    <span className="font-medium">Current usage:</span>{" "}
-                    {usageInfo.used}/{usageInfo.limit}{" "}
-                    {FEATURE_LABELS[featureType] || featureType} runs this month
-                  </p>
-                </div>
-              )}
+        {checkoutTier ? (
+          <CheckoutConfirm
+            tierId={checkoutTier}
+            titleId={titleId}
+            onBack={() => setCheckoutTier(null)}
+            onDone={close}
+          />
+        ) : (
+          <>
+          <div className="p-6 pr-14">
+            <h2 id={titleId} className="text-xl font-semibold tracking-tight text-ink">
+              {reasonInfo.title}
+            </h2>
+            <p id={descId} className="mt-2 text-ink-2">
+              {reasonInfo.message}
+            </p>
           </div>
 
-          {/* Upgrade Options */}
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">
-              Upgrade to continue
-            </h3>
+          <div className="grid gap-4 px-6 pb-6 sm:grid-cols-2">
+            {UPGRADE_TIER_IDS.filter((id) => id !== currentTier).map((id) => {
+              const tier = SUBSCRIPTION_TIERS[id];
+              const recommended = id === RECOMMENDED_TIER;
 
-            <div className="grid sm:grid-cols-2 gap-4">
-              {UPGRADE_TIERS.map((tier) => (
+              return (
                 <div
-                  key={tier.id}
-                  className={`relative rounded-xl border-2 ${tier.borderColor} ${tier.bgColor} p-5`}
+                  key={id}
+                  className={`relative flex flex-col rounded-panel bg-surface p-5 ${
+                    recommended
+                      ? "shadow-[inset_0_0_0_1.5px_var(--color-accent)]"
+                      : "shadow-[inset_0_0_0_1px_var(--color-line)]"
+                  }`}
                 >
-                  {tier.popular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                        Recommended
-                      </span>
-                    </div>
+                  {recommended && (
+                    <span className="badge absolute top-4 right-4">Recommended</span>
                   )}
 
-                  <div className="flex items-center gap-2 mb-3">
-                    <tier.icon className={`w-5 h-5 ${tier.iconColor}`} />
-                    <h4 className="text-lg font-bold text-slate-800">
-                      {tier.name}
-                    </h4>
-                  </div>
+                  <h3 className="text-base font-semibold text-ink">{tier.name}</h3>
+                  <p className="mt-0.5 text-sm text-ink-3">{tier.description}</p>
 
-                  <div className="mb-4">
-                    <span className="text-3xl font-bold text-slate-800">
+                  <p className="mt-4">
+                    <span className="text-3xl font-semibold tracking-tight text-ink tabular-nums">
                       ₹{tier.price}
                     </span>
-                    <span className="text-slate-500 ml-1">/month</span>
-                  </div>
+                    <span className="ml-1.5 text-sm text-ink-3">for {PAID_PERIOD_DAYS} days</span>
+                  </p>
 
-                  <ul className="space-y-2 mb-4">
-                    {tier.features.map((feature, index) => (
-                      <li
-                        key={index}
-                        className="flex items-center gap-2 text-sm text-slate-700"
-                      >
-                        <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  <ul className="mt-4 mb-5 space-y-2 text-sm text-ink-2">
+                    {getTierFeatures(id).map((feature) => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <Check size={16} strokeWidth={1.75} className="mt-0.5 shrink-0 text-ink-3" aria-hidden="true" />
                         {feature}
                       </li>
                     ))}
                   </ul>
 
                   <button
-                    onClick={() => handleUpgrade(tier.id)}
-                    className={`w-full py-2.5 px-4 rounded-lg font-semibold transition-all duration-200 ${tier.buttonStyle}`}
+                    type="button"
+                    onClick={() => setCheckoutTier(id)}
+                    className={`btn mt-auto w-full ${recommended ? "btn-primary" : "btn-secondary"}`}
                   >
-                    Upgrade to {tier.name}
+                    Get {tier.name}
                   </button>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
-          {/* Footer */}
-          <div className="px-6 pb-6">
-            <p className="text-center text-sm text-slate-500">
-              Cancel anytime. Secure payment processing.
-            </p>
-          </div>
-          <AlertModal
-            isOpen={alertState.isOpen}
-            onClose={() =>
-              setAlertState((prev) => ({ ...prev, isOpen: false }))
-            }
-            type={alertState.type}
-            message={alertState.message}
-          />
-        </motion.div>
+          <p className="border-t border-line px-6 py-4 text-center text-[13px] text-ink-3">
+            Payments are processed securely by Razorpay.
+          </p>
+
+          </>
+        )}
       </div>
-    </AnimatePresence>
+    </div>
   );
 }

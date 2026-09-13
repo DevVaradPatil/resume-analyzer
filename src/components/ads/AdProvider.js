@@ -1,8 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { AD_CONFIG } from '../../lib/adsense-config';
+import Script from 'next/script';
+import { AD_CONFIG, ADSENSE_PUBLISHER_ID } from '../../lib/adsense-config';
+import { useSubscription } from '../SubscriptionProvider';
 
 // Context for ad visibility state
 const AdContext = createContext({
@@ -18,66 +20,16 @@ const AdContext = createContext({
  */
 export function AdProvider({ children }) {
   const { user, isLoaded: isUserLoaded } = useUser();
-  const [adState, setAdState] = useState({
-    showAds: true,
-    userTier: 'free',
-    isLoading: true,
-  });
+  // Reads the status SubscriptionProvider already fetched, so a completed
+  // payment hides ads as soon as that status refreshes, without a reload.
+  const { subscriptionStatus, isCheckingSubscription } = useSubscription();
 
-  useEffect(() => {
-    async function checkSubscription() {
-      if (!isUserLoaded) return;
-
-      // If no user, show ads (anonymous users)
-      if (!user) {
-        setAdState({
-          showAds: true,
-          userTier: 'free',
-          isLoading: false,
-        });
-        return;
-      }
-
-      try {
-        // Check user's subscription status
-        const response = await fetch('/api/subscription/status');
-        
-        if (response.ok) {
-          const payload = await response.json();
-          // /api/subscription/status wraps its result as { status, data }, so
-          // the tier lives one level deeper than it looks.
-          const tier = payload.data?.subscription?.tier || 'free';
-
-          // Show ads only to free tier users (if configured)
-          const showAds = AD_CONFIG.showOnlyToFreeUsers 
-            ? tier === 'free' 
-            : true;
-          
-          setAdState({
-            showAds,
-            userTier: tier,
-            isLoading: false,
-          });
-        } else {
-          // Default to showing ads if subscription check fails
-          setAdState({
-            showAds: true,
-            userTier: 'free',
-            isLoading: false,
-          });
-        }
-      } catch (error) {
-        console.error('Error checking subscription for ads:', error);
-        setAdState({
-          showAds: true,
-          userTier: 'free',
-          isLoading: false,
-        });
-      }
-    }
-
-    checkSubscription();
-  }, [user, isUserLoaded]);
+  const tier = subscriptionStatus?.subscription?.tier || 'free';
+  const adState = {
+    showAds: AD_CONFIG.showOnlyToFreeUsers ? tier === 'free' : true,
+    userTier: tier,
+    isLoading: !isUserLoaded || (Boolean(user) && isCheckingSubscription),
+  };
 
   return (
     <AdContext.Provider value={adState}>
@@ -108,7 +60,22 @@ export function AdWrapper({ children, className = '' }) {
     return null;
   }
 
-  return <div className={className}>{children}</div>;
+  return (
+    <div className={className}>
+      {/* The AdSense script loads here rather than in the root layout, so it
+          only reaches pages that render an ad unit (DESIGN.md 11.3, 15) and
+          only for users who see ads. next/script dedupes it by id. */}
+      {AD_CONFIG.enabled && (
+        <Script
+          id="adsbygoogle-js"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}`}
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+        />
+      )}
+      {children}
+    </div>
+  );
 }
 
 export default AdProvider;

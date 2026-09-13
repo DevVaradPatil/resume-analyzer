@@ -1,298 +1,206 @@
 "use client";
 
 import React from "react";
-import { ResultCard, BulletList } from "./index";
-import { getScoreColor } from "../../lib/score";
+import {
+  asArray,
+  asObject,
+  humanize,
+  BulletList,
+  KeyValueList,
+  PriorityBadge,
+  ReportLayout,
+  ReportPanel,
+  ScoreBar,
+  ScoreDisplay,
+  StatList,
+  SubHeading,
+} from "./index";
 
 /**
- * Result rendering for the analytics feature.
- *
- * Extracted verbatim from the page component, which had grown past 600 lines
- * with all of this inline. It is a pure function of `data` -- it closed over no
- * page state -- so moving it changes nothing about behaviour.
+ * Resume analytics report. Reads the keys defined by the prompt template in
+ * analyzeResumeOverallWithGemini; that template is the contract.
  *
  * @param {Object} props
  * @param {Object} props.data - Parsed analysis result from the API
  */
 export default function AnalyticsResults({ data }) {
-  if (!data) return null;
+  if (!asObject(data)) return null;
+
+  const insights = asObject(data.summary_insights) || {};
+  const priorities = asArray(insights.priority_improvements).filter(asObject);
+  const metrics = Object.entries(asObject(data.detailed_analysis) || {}).filter(([, m]) => asObject(m));
+  const sectionScores = Object.entries(asObject(data.section_analysis) || {}).filter(([, s]) => asObject(s));
+  const hasStrengths = asArray(data.strengths).length > 0 || asArray(data.improvement_areas).length > 0;
+  const ats = asObject(data.ats_analysis);
+  const actions = asArray(data.actionable_recommendations).filter(asObject);
+  const industry = asObject(data.industry_insights);
+
+  const sections = [
+    { id: "summary", label: "Summary" },
+    metrics.length > 0 && { id: "metrics", label: "Metrics" },
+    sectionScores.length > 0 && { id: "sections", label: "Sections" },
+    hasStrengths && { id: "strengths", label: "Strengths" },
+    ats && { id: "ats", label: "ATS" },
+    actions.length > 0 && { id: "actions", label: "Actions" },
+    industry && { id: "industry", label: "Industry" },
+  ].filter(Boolean);
 
   return (
-    <div className="space-y-8">
-      {/* Summary Card */}
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-slate-800">Resume Analysis Summary</h2>
-          <div className="text-right">
-            <div className="text-3xl font-bold text-blue-600">{data.overall_score}/100</div>
-            <div className="text-sm text-slate-600">Overall Score</div>
-          </div>
-        </div>
-        
-        <div className="grid md:grid-cols-5 gap-4 mb-6">
-          <div className="text-center p-4 bg-blue-50 border border-blue-100 rounded-lg">
-            <div className="text-2xl font-bold text-blue-700">{data.summary_insights?.overall_grade || 'N/A'}</div>
-            <div className="text-sm text-blue-600">Grade</div>
-          </div>
-          <div className="text-center p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
-            <div className="text-2xl font-bold text-emerald-700">{data.summary_insights?.ats_readiness || 0}%</div>
-            <div className="text-sm text-emerald-600">ATS Ready</div>
-          </div>
-          <div className="text-center p-4 bg-purple-50 border border-purple-100 rounded-lg">
-            <div className="text-2xl font-bold text-purple-700">{data.summary_insights?.market_competitiveness || 0}%</div>
-            <div className="text-sm text-purple-600">Market Competitive</div>
-          </div>
-          <div className="text-center p-4 bg-indigo-50 border border-indigo-100 rounded-lg">
-            <div className="text-2xl font-bold text-indigo-700">{data.summary_insights?.professional_presentation || 0}%</div>
-            <div className="text-sm text-indigo-600">Professional</div>
-          </div>
-          <div className="text-center p-4 bg-amber-50 border border-amber-100 rounded-lg">
-            <div className="text-2xl font-bold text-amber-700">{data.summary_insights?.experience_level || 'N/A'}</div>
-            <div className="text-sm text-amber-600">Experience Level</div>
-          </div>
-        </div>
+    <ReportLayout sections={sections}>
+      <ReportPanel id="summary" title="Resume report">
+        <div className="grid gap-8 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+          <ScoreDisplay score={data.overall_score} kind="quality" caption="Overall score" />
 
-        {/* Top Strengths */}
-        {data.summary_insights?.top_strengths && (
-          <div className="mb-4">
-            <h3 className="font-semibold text-slate-800 mb-2">Top Strengths</h3>
-            <div className="flex flex-wrap gap-2">
-              {data.summary_insights.top_strengths.map((strength, index) => (
-                <span key={index} className="px-3 py-1 bg-green-100 border border-green-200 text-green-800 rounded-full text-sm">
-                  {strength}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+          <div className="space-y-6">
+            <StatList
+              items={[
+                { label: "Grade", value: insights.overall_grade },
+                { label: "ATS readiness", value: insights.ats_readiness, suffix: "/100" },
+                { label: "Competitiveness", value: insights.market_competitiveness, suffix: "/100" },
+                { label: "Presentation", value: insights.professional_presentation, suffix: "/100" },
+                { label: "Experience level", value: insights.experience_level },
+              ]}
+            />
 
-        {/* Priority Improvements */}
-        {data.summary_insights?.priority_improvements && (
-          <div>
-            <h3 className="font-semibold text-slate-800 mb-2">Priority Improvements</h3>
-            <div className="space-y-2">
-              {data.summary_insights.priority_improvements.map((item, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-lg">
-                  <span className={`px-2 py-1 rounded text-xs font-medium border ${
-                    item.priority === 'High' ? 'bg-red-100 text-red-800 border-red-200' :
-                    item.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                    'bg-blue-100 text-blue-800 border-blue-200'
-                  }`}>
-                    {item.priority}
-                  </span>
-                  <div>
-                    <div className="font-medium text-slate-800">{item.area}</div>
-                    <div className="text-sm text-slate-600">{item.recommendation}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Detailed Analysis */}
-      {data.detailed_analysis && (
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Detailed Metrics</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            {Object.entries(data.detailed_analysis).map(([category, categoryData]) => (
-              <div key={category} className="space-y-3">
-                <h3 className="font-semibold text-slate-800 capitalize">
-                  {category.replace(/_/g, ' ')}
-                </h3>
-                <div className="bg-slate-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-slate-600">Overall Score</span>
-                    <span className="font-bold text-slate-800">{categoryData.score}/100</span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full ${getScoreColor(categoryData.score)}`}
-                      style={{ width: `${categoryData.score}%` }}
-                    ></div>
-                  </div>
-                  {categoryData.details && (
-                    <div className="mt-3 space-y-1">
-                      {Object.entries(categoryData.details).map(([key, value]) => (
-                        <div key={key} className="flex justify-between text-sm">
-                          <span className="text-slate-600 capitalize">{key.replace(/_/g, ' ')}</span>
-                          <span className="text-slate-800">{value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            {asArray(insights.top_strengths).length > 0 && (
+              <div>
+                <SubHeading>Top strengths</SubHeading>
+                <BulletList items={insights.top_strengths} tone="positive" />
               </div>
-            ))}
+            )}
           </div>
         </div>
-      )}
 
-      {/* Section Analysis */}
-      {data.section_analysis && (
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Section-by-Section Analysis</h2>
-          <div className="space-y-4">
-            {Object.entries(data.section_analysis).map(([section, sectionData]) => (
-              <div key={section} className="border border-slate-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-slate-800 capitalize">
-                    {section.replace(/_/g, ' ')}
-                  </h3>
-                  <span className="font-bold text-blue-600">{sectionData.score}/100</span>
-                </div>
-                <p className="text-sm text-slate-600 mb-2">{sectionData.feedback}</p>
-                {sectionData.suggestions && (
-                  <div className="mt-2">
-                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Suggestions:</span>
-                    <ul className="mt-1 space-y-1">
-                      {sectionData.suggestions.map((suggestion, index) => (
-                        <li key={index} className="text-xs text-slate-600">• {suggestion}</li>
-                      ))}
-                    </ul>
+        {priorities.length > 0 && (
+          <div className="mt-8 border-t border-line pt-6">
+            <SubHeading>Do these first</SubHeading>
+            <ul className="divide-y divide-line">
+              {priorities.map((item, index) => (
+                <li key={index} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                  <PriorityBadge priority={item.priority} />
+                  <div className="min-w-0 text-[15px] leading-6">
+                    <p className="font-medium text-ink">{item.area}</p>
+                    <p className="text-ink-2">{item.recommendation}</p>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Strengths & Improvement Areas */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {data.strengths && (
-          <ResultCard title="Key Strengths">
-            <BulletList items={data.strengths} tone="positive" />
-          </ResultCard>
-        )}
-
-        {data.improvement_areas && (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-4">Areas for Improvement</h2>
-            <ul className="space-y-2">
-              {data.improvement_areas.map((area, index) => (
-                <li key={index} className="flex items-start gap-3">
-                  <span className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></span>
-                  <span className="text-slate-600">{area}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
-      </div>
+      </ReportPanel>
 
-      {/* ATS Analysis */}
-      {data.ats_analysis && (
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">ATS Compatibility Analysis</h2>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-slate-600">ATS Score</span>
-            <span className="text-2xl font-bold text-blue-600">{data.ats_analysis.score}/100</span>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-4">
-            {data.ats_analysis.strengths && (
-              <div>
-                <h3 className="font-semibold text-green-800 mb-2">Strengths</h3>
-                <ul className="space-y-1">
-                  {data.ats_analysis.strengths.map((strength, index) => (
-                    <li key={index} className="text-sm text-slate-600">• {strength}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {data.ats_analysis.issues && (
-              <div>
-                <h3 className="font-semibold text-red-800 mb-2">Issues</h3>
-                <ul className="space-y-1">
-                  {data.ats_analysis.issues.map((issue, index) => (
-                    <li key={index} className="text-sm text-slate-600">• {issue}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {data.ats_analysis.recommendations && (
-              <div>
-                <h3 className="font-semibold text-blue-800 mb-2">Recommendations</h3>
-                <ul className="space-y-1">
-                  {data.ats_analysis.recommendations.map((rec, index) => (
-                    <li key={index} className="text-sm text-slate-600">• {rec}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Actionable Recommendations */}
-      {data.actionable_recommendations && (
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Actionable Recommendations</h2>
-          <div className="space-y-4">
-            {data.actionable_recommendations.map((rec, index) => (
-              <div key={index} className="border-l-4 border-blue-500 pl-4 py-2 bg-blue-50">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-slate-800">{rec.category}</span>
-                  <span className={`px-2 py-1 rounded text-xs font-medium border ${
-                    rec.priority === 'High' ? 'bg-red-100 text-red-800 border-red-200' :
-                    rec.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                    'bg-blue-100 text-blue-800 border-blue-200'
-                  }`}>
-                    {rec.priority}
-                  </span>
-                </div>
-                <p className="text-slate-600 text-sm mb-1">{rec.action}</p>
-                <p className="text-slate-500 text-xs italic">{rec.impact}</p>
+      {metrics.length > 0 && (
+        <ReportPanel id="metrics" title="Detailed metrics">
+          <div className="divide-y divide-line">
+            {metrics.map(([category, metric]) => (
+              <div key={category} className="py-5 first:pt-0 last:pb-0">
+                <ScoreBar label={humanize(category)} score={metric.score} />
+                <KeyValueList data={metric.details} />
               </div>
             ))}
           </div>
-        </div>
+        </ReportPanel>
       )}
 
-      {/* Industry Insights */}
-      {data.industry_insights && (
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Industry Insights</h2>
-          <div className="space-y-4">
-            {data.industry_insights.current_trends && (
+      {sectionScores.length > 0 && (
+        <ReportPanel id="sections" title="Section by section">
+          <div className="divide-y divide-line">
+            {sectionScores.map(([section, detail]) => (
+              <div key={section} className="py-5 first:pt-0 last:pb-0">
+                <ScoreBar label={humanize(section)} score={detail.score} />
+                {typeof detail.feedback === "string" && (
+                  <p className="mt-3 text-[15px] leading-6 text-ink-2">{detail.feedback}</p>
+                )}
+                <BulletList items={detail.suggestions} className="mt-3" />
+              </div>
+            ))}
+          </div>
+        </ReportPanel>
+      )}
+
+      {hasStrengths && (
+        <ReportPanel id="strengths" title="Strengths and weak spots">
+          <div className="grid gap-8 md:grid-cols-2">
+            {asArray(data.strengths).length > 0 && (
               <div>
-                <h3 className="font-semibold text-slate-800 mb-2">Current Industry Trends</h3>
-                <div className="flex flex-wrap gap-2">
-                  {data.industry_insights.current_trends.map((trend, index) => (
-                    <span key={index} className="px-3 py-1 bg-blue-100 border border-blue-200 text-blue-800 rounded-full text-sm">
-                      {trend}
-                    </span>
-                  ))}
-                </div>
+                <SubHeading>Strengths</SubHeading>
+                <BulletList items={data.strengths} tone="positive" />
               </div>
             )}
-            
-            {data.industry_insights.skill_recommendations && (
+            {asArray(data.improvement_areas).length > 0 && (
               <div>
-                <h3 className="font-semibold text-slate-800 mb-2">Recommended Skills</h3>
-                <div className="flex flex-wrap gap-2">
-                  {data.industry_insights.skill_recommendations.map((skill, index) => (
-                    <span key={index} className="px-3 py-1 bg-green-100 border border-green-200 text-green-800 rounded-full text-sm">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {data.industry_insights.market_positioning && (
-              <div>
-                <h3 className="font-semibold text-slate-800 mb-2">Market Positioning</h3>
-                <p className="text-slate-600 text-sm">{data.industry_insights.market_positioning}</p>
+                <SubHeading>To improve</SubHeading>
+                <BulletList items={data.improvement_areas} tone="warning" />
               </div>
             )}
           </div>
-        </div>
+        </ReportPanel>
       )}
-    </div>
+
+      {ats && (
+        <ReportPanel id="ats" title="ATS compatibility">
+          <ScoreBar label="ATS score" score={ats.score} className="sm:max-w-[50%]" />
+          <div className="mt-8 grid gap-8 empty:hidden md:grid-cols-3">
+            {asArray(ats.strengths).length > 0 && (
+              <div>
+                <SubHeading>Working</SubHeading>
+                <BulletList items={ats.strengths} tone="positive" />
+              </div>
+            )}
+            {asArray(ats.issues).length > 0 && (
+              <div>
+                <SubHeading>Issues</SubHeading>
+                <BulletList items={ats.issues} tone="warning" />
+              </div>
+            )}
+            {asArray(ats.recommendations).length > 0 && (
+              <div>
+                <SubHeading>Recommendations</SubHeading>
+                <BulletList items={ats.recommendations} />
+              </div>
+            )}
+          </div>
+        </ReportPanel>
+      )}
+
+      {actions.length > 0 && (
+        <ReportPanel id="actions" title="Recommended actions">
+          <ul className="divide-y divide-line">
+            {actions.map((item, index) => (
+              <li key={index} className="py-4 first:pt-0 last:pb-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[15px] font-medium text-ink">{item.category}</span>
+                  <PriorityBadge priority={item.priority} />
+                </div>
+                <p className="mt-1 text-[15px] leading-6 text-ink-2">{item.action}</p>
+                {item.impact && <p className="mt-1 text-sm text-ink-3">{item.impact}</p>}
+              </li>
+            ))}
+          </ul>
+        </ReportPanel>
+      )}
+
+      {industry && (
+        <ReportPanel id="industry" title="Industry context">
+          {typeof industry.market_positioning === "string" && (
+            <p className="mb-6 max-w-[65ch] text-[15px] leading-6 text-ink-2">{industry.market_positioning}</p>
+          )}
+          <div className="grid gap-8 empty:hidden md:grid-cols-2">
+            {asArray(industry.current_trends).length > 0 && (
+              <div>
+                <SubHeading>Trends</SubHeading>
+                <BulletList items={industry.current_trends} />
+              </div>
+            )}
+            {asArray(industry.skill_recommendations).length > 0 && (
+              <div>
+                <SubHeading>Skills worth adding</SubHeading>
+                <BulletList items={industry.skill_recommendations} />
+              </div>
+            )}
+          </div>
+        </ReportPanel>
+      )}
+    </ReportLayout>
   );
 }
